@@ -4,3 +4,5 @@ __pycache__/
 .pytest_cache/
 test_journal.xlsx
 verify.py
+cloudflared.exe
+
