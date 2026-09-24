@@ -167,6 +167,13 @@ REAL_TRANSACTIONS = [
     ("2026-09-23", "Saisie", "entree", 3600, "", "secretaire"),
     ("2026-09-23", "Photo passeport", "entree", 1000, "", "secretaire"),
     ("2026-09-23", "Lamination", "entree", 400, "", "secretaire"),
+    # 24/09/2026
+    ("2026-09-24", "Achat d'articles", "sortie", 10000, "", "Secrétaire de Caisse"),
+    ("2026-09-24", "Photocopie", "entree", 10150, "", "Secrétaire de Caisse"),
+    ("2026-09-24", "Impression", "entree", 4675, "", "Secrétaire de Caisse"),
+    ("2026-09-24", "Vente d'articles", "entree", 750, "", "Secrétaire de Caisse"),
+    ("2026-09-24", "Saisie", "entree", 300, "", "Secrétaire de Caisse"),
+    ("2026-09-24", "Scanner", "entree", 1000, "", "Secrétaire de Caisse"),
 ]
 
 def main():
