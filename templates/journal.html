@@ -148,7 +148,9 @@
             </div>
         </div>
 
-        <form id="entryForm" action="/transactions/create" method="POST" class="p-6 bg-slate-50/50 space-y-4">
+        <form id="entryForm" action="/transactions/create" method="POST" onsubmit="return handleEntrySubmit(event)" class="p-6 bg-slate-50/50 space-y-4">
+            <input type="hidden" id="actionTypeInput" name="action_type" value="create">
+            <input type="hidden" id="existingIdInput" name="existing_id" value="">
             
             {% if current_user.role == 'secretaire' %}
             <div class="bg-blue-50 border-l-4 border-blue-500 p-3 rounded-r-lg text-xs text-blue-900 flex items-start gap-2.5">
@@ -556,6 +558,95 @@
     </div>
 </div>
 
+<!-- Duplicate Warning & Merge Confirmation Modal -->
+<div id="duplicateModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl p-6 sm:p-7 max-w-lg w-full shadow-2xl border border-slate-200 space-y-5 animate-in fade-in zoom-in duration-200">
+        
+        <!-- Header with Amber Alert Icon -->
+        <div class="flex items-start gap-4">
+            <div class="w-12 h-12 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center text-2xl flex-shrink-0 shadow-inner">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+            <div>
+                <h3 class="text-base font-extrabold text-slate-900 leading-snug">
+                    Rappel : Opération déjà enregistrée ce jour !
+                </h3>
+                <p class="text-xs text-slate-500 mt-1">
+                    Une opération identique a déjà été enregistrée pour cette même date. Souhaitez-vous faire un doublet ou fusionner les montants ?
+                </p>
+            </div>
+        </div>
+
+        <!-- Comparison Card -->
+        <div class="bg-slate-50 rounded-2xl p-4 border border-slate-200 space-y-2.5 text-xs">
+            <div class="flex items-center justify-between pb-2 border-b border-slate-200">
+                <span class="font-bold text-slate-600">Catégorie :</span>
+                <span id="dupCategoryName" class="font-extrabold text-blue-900 bg-blue-100 px-2.5 py-0.5 rounded-full"></span>
+            </div>
+            <div class="flex items-center justify-between pb-2 border-b border-slate-200">
+                <span class="font-bold text-slate-600">Date de l'opération :</span>
+                <span id="dupDate" class="font-semibold text-slate-800"></span>
+            </div>
+            <div class="flex items-center justify-between pb-2 border-b border-slate-200">
+                <span class="text-slate-600">Montant déjà enregistré en caisse :</span>
+                <span id="dupOldAmount" class="font-bold text-slate-800"></span>
+            </div>
+            <div class="flex items-center justify-between pb-2 border-b border-slate-200">
+                <span class="text-slate-600">Nouveau montant à ajouter :</span>
+                <span id="dupNewAmount" class="font-bold text-blue-700"></span>
+            </div>
+            
+            <!-- Result if merged -->
+            <div class="flex items-center justify-between pt-1 bg-emerald-50 -mx-2 px-3 py-2.5 rounded-xl border border-emerald-200">
+                <div>
+                    <span class="font-black text-emerald-950 flex items-center gap-1.5">
+                        <i class="fa-solid fa-calculator text-emerald-600"></i> Montant total après fusion :
+                    </span>
+                    <span class="text-[10px] text-emerald-700">Additionne les 2 montants en 1 seule ligne</span>
+                </div>
+                <span id="dupMergedAmount" class="font-black text-base text-emerald-800"></span>
+            </div>
+        </div>
+
+        <!-- 3 Action Options -->
+        <div class="space-y-2.5 pt-1">
+            
+            <!-- Choice 1: Merge into one (Green) -->
+            <button type="button" onclick="confirmMerge()" 
+                    class="w-full bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold py-3 px-4 rounded-2xl shadow-md shadow-emerald-600/20 transition flex items-center justify-between group">
+                <div class="text-left">
+                    <div class="text-[11px] uppercase tracking-wider font-extrabold text-emerald-100 flex items-center gap-1">
+                        <i class="fa-solid fa-code-merge"></i> 1. Fusionner les 2 en un seul (Recommandé)
+                    </div>
+                    <div id="btnMergeText" class="text-sm font-black mt-0.5">Fusionner en 1 seule entrée</div>
+                </div>
+                <i class="fa-solid fa-arrow-right text-emerald-200 group-hover:translate-x-1 transition-transform"></i>
+            </button>
+
+            <!-- Choice 2: Add as doublet / separate line (Blue) -->
+            <button type="button" onclick="confirmDoublet()" 
+                    class="w-full bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold py-2.5 px-4 rounded-2xl shadow-md shadow-blue-600/20 transition flex items-center justify-between group">
+                <div class="text-left">
+                    <div class="text-[11px] uppercase tracking-wider font-extrabold text-blue-100 flex items-center gap-1">
+                        <i class="fa-solid fa-plus-circle"></i> 2. Oui, ajouter comme doublet
+                    </div>
+                    <div class="text-xs font-bold text-white mt-0.5">Créer une 2ème ligne distincte pour cette entrée</div>
+                </div>
+                <i class="fa-solid fa-arrow-right text-blue-200 group-hover:translate-x-1 transition-transform"></i>
+            </button>
+
+            <!-- Choice 3: Cancel (Gray) -->
+            <button type="button" onclick="closeDuplicateModal()" 
+                    class="w-full bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-700 font-bold text-xs py-2.5 rounded-2xl transition flex items-center justify-center gap-2">
+                <i class="fa-solid fa-xmark"></i>
+                <span>Annuler (C'était un oubli / Doublon involontaire)</span>
+            </button>
+
+        </div>
+
+    </div>
+</div>
+
 {% endblock %}
 
 {% block scripts %}
@@ -614,9 +705,97 @@
         document.getElementById('editModal').classList.add('hidden');
     }
 
+    // Duplicate detection and confirmation logic
+    let currentDuplicateData = null;
+
+    async function handleEntrySubmit(event) {
+        const actionType = document.getElementById('actionTypeInput').value;
+        if (actionType === 'merge' || actionType === 'force_create') {
+            return true;
+        }
+
+        event.preventDefault();
+
+        const dateVal = document.querySelector('input[name="date"]').value;
+        const catSelect = document.getElementById('categorySelect');
+        const catVal = catSelect.value;
+        const typeChecked = document.querySelector('input[name="type"]:checked');
+        const typeVal = typeChecked ? typeChecked.value : 'entree';
+        const amountInput = document.getElementById('amountInput');
+        const amountVal = parseFloat(amountInput.value);
+
+        if (!catVal || isNaN(amountVal) || amountVal <= 0) {
+            document.getElementById('entryForm').reportValidity();
+            return false;
+        }
+
+        // Query backend duplicate check for this day, category and operation type
+        try {
+            const url = `/api/check-duplicate?date=${encodeURIComponent(dateVal)}&category_name=${encodeURIComponent(catVal)}&type=${encodeURIComponent(typeVal)}`;
+            const resp = await fetch(url);
+            const data = await resp.json();
+
+            if (data.exists) {
+                currentDuplicateData = {
+                    date: dateVal,
+                    category: catVal,
+                    type: typeVal,
+                    newAmount: amountVal,
+                    existing: data.existing,
+                    totalExisting: data.total_existing_amount,
+                    count: data.count
+                };
+                showDuplicateModal(currentDuplicateData);
+                return false;
+            }
+        } catch (err) {
+            console.error('Erreur vérification doublon:', err);
+        }
+
+        // If no duplicate found, submit directly
+        document.getElementById('entryForm').submit();
+        return false;
+    }
+
+    function showDuplicateModal(data) {
+        document.getElementById('dupCategoryName').innerText = data.category + (data.type === 'entree' ? ' (Recette / Entrée)' : ' (Dépense / Sortie)');
+        document.getElementById('dupDate').innerText = data.date;
+        document.getElementById('dupOldAmount').innerText = data.totalExisting.toLocaleString('fr-FR') + ' FCFA';
+        document.getElementById('dupNewAmount').innerText = '+' + data.newAmount.toLocaleString('fr-FR') + ' FCFA';
+        
+        const mergedTotal = data.totalExisting + data.newAmount;
+        document.getElementById('dupMergedAmount').innerText = mergedTotal.toLocaleString('fr-FR') + ' FCFA';
+        document.getElementById('btnMergeText').innerText = `Fusionner en 1 seule ligne (${mergedTotal.toLocaleString('fr-FR')} FCFA)`;
+
+        document.getElementById('duplicateModal').classList.remove('hidden');
+    }
+
+    function confirmMerge() {
+        if (!currentDuplicateData) return;
+        document.getElementById('actionTypeInput').value = 'merge';
+        document.getElementById('existingIdInput').value = currentDuplicateData.existing.id;
+        document.getElementById('duplicateModal').classList.add('hidden');
+        document.getElementById('entryForm').submit();
+    }
+
+    function confirmDoublet() {
+        document.getElementById('actionTypeInput').value = 'force_create';
+        document.getElementById('duplicateModal').classList.add('hidden');
+        document.getElementById('entryForm').submit();
+    }
+
+    function closeDuplicateModal() {
+        document.getElementById('actionTypeInput').value = 'create';
+        document.getElementById('existingIdInput').value = '';
+        document.getElementById('duplicateModal').classList.add('hidden');
+    }
+
     // Close modal on Escape key
     document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') closeEditModal();
+        if (e.key === 'Escape') {
+            closeEditModal();
+            closeDuplicateModal();
+        }
     });
 </script>
 {% endblock %}

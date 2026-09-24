@@ -160,26 +160,53 @@
 
     <!-- Notification Toasts (Flash messages) -->
     {% if message %}
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4 no-print">
-        <div class="p-4 rounded-xl border flex items-center justify-between shadow-sm
-            {% if message_type == 'error' %}bg-rose-50 border-rose-200 text-rose-800
-            {% elif message_type == 'warning' %}bg-amber-50 border-amber-200 text-amber-800
-            {% else %}bg-emerald-50 border-emerald-200 text-emerald-800{% endif %}">
-            <div class="flex items-center gap-3">
-                {% if message_type == 'error' %}
-                    <i class="fa-solid fa-circle-exclamation text-rose-500 text-lg"></i>
-                {% elif message_type == 'warning' %}
-                    <i class="fa-solid fa-triangle-exclamation text-amber-500 text-lg"></i>
-                {% else %}
-                    <i class="fa-solid fa-circle-check text-emerald-500 text-lg"></i>
-                {% endif %}
-                <span class="text-sm font-medium">{{ message }}</span>
+    <div id="flashToast" class="fixed top-4 right-4 sm:right-6 left-4 sm:left-auto max-w-md z-50 no-print transition-all duration-300 transform translate-y-0">
+        <div class="p-4 rounded-2xl border-2 shadow-2xl backdrop-blur-md flex items-start justify-between gap-3
+            {% if message_type == 'error' %}bg-rose-50/95 border-rose-300 text-rose-900 shadow-rose-500/20
+            {% elif message_type == 'warning' %}bg-amber-50/95 border-amber-300 text-amber-900 shadow-amber-500/20
+            {% else %}bg-emerald-50/95 border-emerald-400 text-emerald-900 shadow-emerald-500/20{% endif %}">
+            
+            <div class="flex items-start gap-3">
+                <div class="w-9 h-9 rounded-xl flex items-center justify-center text-lg flex-shrink-0 mt-0.5
+                    {% if message_type == 'error' %}bg-rose-100 text-rose-600
+                    {% elif message_type == 'warning' %}bg-amber-100 text-amber-600
+                    {% else %}bg-emerald-100 text-emerald-600{% endif %}">
+                    {% if message_type == 'error' %}
+                        <i class="fa-solid fa-circle-exclamation"></i>
+                    {% elif message_type == 'warning' %}
+                        <i class="fa-solid fa-triangle-exclamation"></i>
+                    {% else %}
+                        <i class="fa-solid fa-circle-check"></i>
+                    {% endif %}
+                </div>
+                <div>
+                    <h5 class="text-xs font-black uppercase tracking-wider
+                        {% if message_type == 'error' %}text-rose-700
+                        {% elif message_type == 'warning' %}text-amber-700
+                        {% else %}text-emerald-700{% endif %}">
+                        {% if message_type == 'error' %}Erreur
+                        {% elif message_type == 'warning' %}Attention
+                        {% else %}Opération Enregistrée{% endif %}
+                    </h5>
+                    <p class="text-sm font-bold mt-0.5 leading-snug">{{ message }}</p>
+                </div>
             </div>
-            <button onclick="this.parentElement.remove()" class="text-slate-400 hover:text-slate-600">
-                <i class="fa-solid fa-xmark"></i>
+
+            <button onclick="document.getElementById('flashToast').remove()" class="text-slate-400 hover:text-slate-700 p-1 flex-shrink-0">
+                <i class="fa-solid fa-xmark text-sm"></i>
             </button>
         </div>
     </div>
+    <script>
+        setTimeout(() => {
+            const toast = document.getElementById('flashToast');
+            if (toast) {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateY(-10px)';
+                setTimeout(() => toast.remove(), 300);
+            }
+        }, 6500);
+    </script>
     {% endif %}
 
     <!-- Main Content Area -->

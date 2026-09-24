@@ -9,8 +9,10 @@ from datetime import datetime, date
 from pathlib import Path
 from typing import Optional
 
+import urllib.parse
+
 from fastapi import FastAPI, Request, Form, Response, HTTPException, status
-from fastapi.responses import HTMLResponse, RedirectResponse, FileResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
@@ -219,6 +221,42 @@ async def journal_view(
         }
     )
 
+@app.get("/api/check-duplicate")
+async def check_duplicate(
+    request: Request,
+    date: str,
+    category_name: str,
+    type: str
+):
+    user = get_current_user(request)
+    if not user:
+        return JSONResponse(status_code=401, content={"error": "Non authentifié"})
+
+    conn = database.get_connection()
+    c = conn.cursor()
+    c.execute("""
+        SELECT id, date, category_name, type, amount, description, created_by_user
+        FROM transactions
+        WHERE date = ? AND category_name = ? AND type = ?
+        ORDER BY id DESC
+    """, (date, category_name, type))
+    rows = c.fetchall()
+    conn.close()
+
+    if rows:
+        items = [dict(r) for r in rows]
+        total_existing_amount = sum(r["amount"] for r in rows)
+        latest = items[0]
+        return JSONResponse({
+            "exists": True,
+            "count": len(rows),
+            "existing": latest,
+            "total_existing_amount": total_existing_amount,
+            "items": items
+        })
+    else:
+        return JSONResponse({"exists": False})
+
 @app.post("/transactions/create")
 async def create_transaction(
     request: Request,
@@ -226,18 +264,67 @@ async def create_transaction(
     category_name: str = Form(...),
     type: str = Form(...),
     amount: float = Form(...),
-    description: Optional[str] = Form(None)
+    description: Optional[str] = Form(None),
+    action_type: str = Form("create"),
+    existing_id: Optional[int] = Form(None)
 ):
     user = get_current_user(request)
+    if not user:
+        return RedirectResponse(url="/login?error=Veuillez+vous+reconnecter", status_code=303)
 
     if amount <= 0:
+        msg = "Le montant doit être supérieur à zéro"
         return RedirectResponse(
-            url="/journal?message=Le+montant+doit+être+supérieur+à+zéro&message_type=error",
+            url=f"/journal?message={urllib.parse.quote_plus(msg)}&message_type=error",
             status_code=303
         )
 
     conn = database.get_connection()
     c = conn.cursor()
+
+    type_label = "Entrée (Recette)" if type == "entree" else "Sortie (Dépense)"
+
+    # Handle Fusion / Merge
+    if action_type == "merge" and existing_id:
+        c.execute("SELECT id, amount, description, category_name, type, date FROM transactions WHERE id = ?", (existing_id,))
+        existing = c.fetchone()
+        if existing:
+            old_amount = existing["amount"]
+            new_total = old_amount + amount
+
+            # Build enriched description
+            existing_desc = (existing["description"] or "").strip()
+            add_desc = (description or "").strip()
+
+            if add_desc:
+                if existing_desc:
+                    new_desc = f"{existing_desc} | Ajout: {add_desc} (+{amount:,.0f} F)"
+                else:
+                    new_desc = f"Initial: {old_amount:,.0f} F | Ajout: {add_desc} (+{amount:,.0f} F)"
+            else:
+                if existing_desc:
+                    new_desc = f"{existing_desc} (+{amount:,.0f} F)"
+                else:
+                    new_desc = f"Cumul: {old_amount:,.0f} F + {amount:,.0f} F"
+
+            c.execute("""
+                UPDATE transactions
+                SET amount = ?, description = ?, updated_by_user = ?, updated_at = CURRENT_TIMESTAMP
+                WHERE id = ?
+            """, (new_total, new_desc, f"{user['full_name']} (Fusion)", existing_id))
+
+            c.execute("""
+                INSERT INTO audit_logs (user_name, action, details)
+                VALUES (?, 'FUSION', ?)
+            """, (user["full_name"], f"Fusion sur transaction #{existing_id} ({category_name}) : {old_amount:,.0f} + {amount:,.0f} = {new_total:,.0f} FCFA"))
+
+            conn.commit()
+            conn.close()
+
+            msg = f"Fusion réussie ! {amount:,.0f} FCFA ajoutés à '{category_name}' pour le {date}. Nouveau montant cumulé : {new_total:,.0f} FCFA."
+            return RedirectResponse(url=f"/journal?message={urllib.parse.quote_plus(msg)}&message_type=success", status_code=303)
+
+    # Regular create or doublet ('force_create')
     c.execute("""
         INSERT INTO transactions (date, category_name, type, amount, description, created_by_user)
         VALUES (?, ?, ?, ?, ?, ?)
@@ -245,8 +332,12 @@ async def create_transaction(
     conn.commit()
     conn.close()
 
-    msg = f"Opération '{category_name}' de {amount:,.0f} FCFA enregistrée avec succès au journal."
-    return RedirectResponse(url=f"/journal?message={msg}&message_type=success", status_code=303)
+    if action_type == "force_create":
+        msg = f"Doublet enregistré ! Une nouvelle ligne distincte pour '{category_name}' ({amount:,.0f} FCFA) a été ajoutée pour le {date}."
+    else:
+        msg = f"Donnée enregistrée avec succès : {type_label} de {amount:,.0f} FCFA pour '{category_name}'."
+
+    return RedirectResponse(url=f"/journal?message={urllib.parse.quote_plus(msg)}&message_type=success", status_code=303)
 
 @app.post("/transactions/update/{id}")
 async def update_transaction(

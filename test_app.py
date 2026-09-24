@@ -150,6 +150,74 @@ def test_pwa_assets():
     assert resp_sw.status_code == 200
     assert "addEventListener" in resp_sw.text
 
+def test_duplicate_check_and_merge_flow():
+    sec_client = TestClient(app)
+    sec_client.cookies.set("cahier_user", "secretaire")
+
+    test_date = "2026-09-30"
+    test_cat = "Reliure"
+
+    # 1. Initial duplicate check should be false
+    chk1 = sec_client.get(f"/api/check-duplicate?date={test_date}&category_name={test_cat}&type=entree")
+    assert chk1.status_code == 200
+    assert chk1.json()["exists"] is False
+
+    # 2. Add first entry (e.g. 2000 FCFA)
+    res1 = sec_client.post("/transactions/create", data={
+        "date": test_date,
+        "category_name": test_cat,
+        "type": "entree",
+        "amount": "2000",
+        "description": "Livre A4"
+    }, follow_redirects=True)
+    assert res1.status_code == 200
+    assert "enregistrée avec succès" in res1.text
+    assert "2 000" in res1.text or "2000" in res1.text
+
+    # 3. Duplicate check should now be true!
+    chk2 = sec_client.get(f"/api/check-duplicate?date={test_date}&category_name={test_cat}&type=entree")
+    assert chk2.status_code == 200
+    d2 = chk2.json()
+    assert d2["exists"] is True
+    assert d2["total_existing_amount"] == 2000
+    existing_id = d2["existing"]["id"]
+
+    # 4. Merge duplicate: add 3000 FCFA to existing
+    res_merge = sec_client.post("/transactions/create", data={
+        "date": test_date,
+        "category_name": test_cat,
+        "type": "entree",
+        "amount": "3000",
+        "description": "Livre B5",
+        "action_type": "merge",
+        "existing_id": str(existing_id)
+    }, follow_redirects=True)
+    assert res_merge.status_code == 200
+    assert "Fusion réussie" in res_merge.text
+    assert "5 000" in res_merge.text or "5000" in res_merge.text
+
+    # 5. Check duplicate check after merge: amount should be 5000
+    chk3 = sec_client.get(f"/api/check-duplicate?date={test_date}&category_name={test_cat}&type=entree")
+    assert chk3.json()["total_existing_amount"] == 5000
+    assert chk3.json()["count"] == 1
+
+    # 6. Force create doublet (separate second row of 1500 FCFA)
+    res_doublet = sec_client.post("/transactions/create", data={
+        "date": test_date,
+        "category_name": test_cat,
+        "type": "entree",
+        "amount": "1500",
+        "description": "2ème client distinct",
+        "action_type": "force_create"
+    }, follow_redirects=True)
+    assert res_doublet.status_code == 200
+    assert "Doublet enregistré" in res_doublet.text
+
+    # 7. Check count is now 2
+    chk4 = sec_client.get(f"/api/check-duplicate?date={test_date}&category_name={test_cat}&type=entree")
+    assert chk4.json()["count"] == 2
+    assert chk4.json()["total_existing_amount"] == 6500
+
 if __name__ == "__main__":
     import pytest
     pytest.main(["-v", "test_app.py"])
