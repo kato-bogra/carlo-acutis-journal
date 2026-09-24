@@ -44,32 +44,8 @@ INITIAL_CATEGORIES = [
     ("Confection de tampon", "entree"),
 ]
 
-INITIAL_TRANSACTIONS = [
-    # 01/09/2026
-    ("2026-09-01", "Photocopie", "entree", 2150, "Photocopies journée", "secretaire"),
-    ("2026-09-01", "Impression", "entree", 675, "Impressions diverses", "secretaire"),
-    ("2026-09-01", "Vente d'articles", "entree", 2950, "Ventes comptoir", "secretaire"),
-    ("2026-09-01", "Photo passeport", "entree", 3000, "Photos d'identité", "secretaire"),
-    ("2026-09-01", "Saisie", "entree", 300, "Saisie documents", "secretaire"),
-    # 02/09/2026
-    ("2026-09-02", "Photocopie", "entree", 625, "Photocopies", "secretaire"),
-    ("2026-09-02", "Impression", "entree", 7450, "Gros tirage d'impression", "secretaire"),
-    ("2026-09-02", "Vente d'articles", "entree", 1900, "Ventes boutique", "secretaire"),
-    ("2026-09-02", "Saisie", "entree", 600, "Saisie rapports", "secretaire"),
-    ("2026-09-02", "Achat de papier ram", "sortie", 10000, "Achat stock ramettes de papier", "secretaire"),
-    ("2026-09-02", "Scanner", "entree", 1500, "Numérisation documents", "secretaire"),
-    # 03/09/2026
-    ("2026-09-03", "Photocopie", "entree", 825, "Photocopies", "secretaire"),
-    ("2026-09-03", "Impression", "entree", 2125, "Impressions", "secretaire"),
-    ("2026-09-03", "Vente d'articles", "entree", 650, "Articles divers", "secretaire"),
-    ("2026-09-03", "Saisie", "entree", 1200, "Saisie de textes", "secretaire"),
-    ("2026-09-03", "Reliure", "entree", 200, "Reliure spirale", "secretaire"),
-    ("2026-09-03", "Photo passeport", "entree", 3000, "Photos passeport express", "secretaire"),
-    ("2026-09-03", "Déplacement", "sortie", 2000, "Frais de déplacement courses", "secretaire"),
-    # 04/09/2026
-    ("2026-09-04", "Reliure", "entree", 100, "Reliure", "secretaire"),
-    ("2026-09-04", "Photocopie", "entree", 1600, "Photocopies", "secretaire"),
-]
+from update_cahier_reel import REAL_TRANSACTIONS
+INITIAL_TRANSACTIONS = REAL_TRANSACTIONS
 
 def hash_pw(pwd: str) -> str:
     return hashlib.sha256(pwd.encode('utf-8')).hexdigest()
