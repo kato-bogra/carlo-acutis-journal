@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+
+{% block title %}Gestion des Catégories — Boutique Carlo Acutis{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- Header -->
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+            <div class="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold mb-1">
+                <i class="fa-solid fa-gear"></i> Paramétrage Réservé à la Direction
+            </div>
+            <h2 class="text-2xl font-black text-slate-900 tracking-tight">Liste Déroulante des Opérations</h2>
+            <p class="text-xs text-slate-500 mt-0.5">Ajoutez ou modifiez les prestations, fournitures et motifs de dépenses disponibles pour la secrétaire.</p>
+        </div>
+        <div class="text-xs text-slate-400 italic">
+            Total : {{ categories|length }} catégories configurées
+        </div>
+    </div>
+
+    <!-- Add Category Form & Info Card -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- Form to Add Category -->
+        <div class="lg:col-span-1 bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+            <h3 class="font-bold text-slate-800 text-base mb-1 flex items-center gap-2">
+                <i class="fa-solid fa-plus-circle text-blue-600"></i>
+                <span>Ajouter une opération</span>
+            </h3>
+            <p class="text-xs text-slate-500 mb-4">La nouvelle opération apparaîtra immédiatement dans la liste de saisie du journal.</p>
+
+            <form action="/categories/create" method="POST" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Nom du libellé / opération</label>
+                    <input type="text" name="name" required placeholder="Ex: Plastification badges" 
+                           class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 font-medium">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Nature par défaut</label>
+                    <select name="operation_type" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 font-medium">
+                        <option value="entree">Entrée (Recette / Prestation / Vente)</option>
+                        <option value="sortie">Sortie (Dépense / Achat / Frais)</option>
+                        <option value="both">Flexible (Recette ou Dépense)</option>
+                    </select>
+                </div>
+
+                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-2.5 px-4 rounded-xl shadow-md transition flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-floppy-disk"></i>
+                    <span>Ajouter à la liste déroulante</span>
+                </button>
+            </form>
+        </div>
+
+        <!-- Category Table List -->
+        <div class="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+            <div class="px-6 py-4 bg-slate-100 border-b border-slate-200 flex items-center justify-between">
+                <h3 class="font-bold text-slate-800 text-sm">Éléments configurés de la liste</h3>
+                <span class="text-xs text-slate-500">DG & DG Adjoint</span>
+            </div>
+
+            <div class="overflow-x-auto max-h-[600px] overflow-y-auto">
+                <table class="w-full text-xs text-left">
+                    <thead class="bg-slate-50 text-slate-600 uppercase text-[10px] font-bold sticky top-0 border-b border-slate-200">
+                        <tr>
+                            <th class="py-2.5 px-4">#</th>
+                            <th class="py-2.5 px-4">Nom de l'opération</th>
+                            <th class="py-2.5 px-4">Nature</th>
+                            <th class="py-2.5 px-4 text-center">Statut</th>
+                            <th class="py-2.5 px-4 text-center">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        {% for cat in categories %}
+                        <tr class="hover:bg-slate-50">
+                            <td class="py-2.5 px-4 text-slate-400 font-mono">{{ loop.index }}</td>
+                            <td class="py-2.5 px-4 font-semibold text-slate-800">
+                                {{ cat.name }}
+                            </td>
+                            <td class="py-2.5 px-4">
+                                {% if cat.operation_type == 'entree' %}
+                                    <span class="px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 text-[10px] font-bold">Entrée</span>
+                                {% elif cat.operation_type == 'sortie' %}
+                                    <span class="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[10px] font-bold">Sortie</span>
+                                {% else %}
+                                    <span class="px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 text-[10px] font-bold">Les deux</span>
+                                {% endif %}
+                            </td>
+                            <td class="py-2.5 px-4 text-center">
+                                {% if cat.is_active %}
+                                    <span class="inline-flex items-center gap-1 text-[11px] text-emerald-600 font-bold">
+                                        <i class="fa-solid fa-circle-check"></i> Actif
+                                    </span>
+                                {% else %}
+                                    <span class="inline-flex items-center gap-1 text-[11px] text-slate-400">
+                                        Inactif
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td class="py-2.5 px-4 text-center">
+                                <form action="/categories/delete/{{ cat.id }}" method="POST" onsubmit="return confirm('Confirmez-vous la suppression de cette catégorie ?');" class="inline">
+                                    <button type="submit" class="p-1 text-slate-400 hover:text-rose-600 transition" title="Supprimer">
+                                        <i class="fa-regular fa-trash-can"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+{% endblock %}

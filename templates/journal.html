@@ -1,0 +1,622 @@
+{% extends "base.html" %}
+
+{% block title %}Cahier Journal — Boutique Carlo Acutis Foundation{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- Top Hero Banner with St Carlo & Photocopiers -->
+    <div class="relative overflow-hidden bg-gradient-to-r from-blue-950 via-slate-900 to-indigo-950 rounded-2xl shadow-xl border border-blue-800/40 text-white p-6 no-print">
+        <div class="absolute -right-8 -bottom-12 opacity-15 pointer-events-none">
+            <img src="/static/images/photocopieuse.jpg" alt="Photocopieuse" class="w-96 h-64 object-cover rounded-3xl">
+        </div>
+
+        <div class="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
+            <div class="flex items-center gap-5">
+                <div class="relative flex-shrink-0">
+                    <img src="/static/images/carlo_acutis.jpg" alt="Saint Carlo Acutis" 
+                         class="w-20 h-20 rounded-2xl object-cover border-2 border-amber-400 shadow-xl shadow-amber-500/10 ring-4 ring-blue-500/20">
+                    <div class="absolute -bottom-2 -right-2 bg-gradient-to-r from-amber-500 to-amber-600 text-blue-950 font-black text-[10px] px-2 py-0.5 rounded-full shadow-md uppercase tracking-wider">
+                        Patron
+                    </div>
+                </div>
+                <div>
+                    <div class="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full bg-blue-500/20 text-blue-300 text-xs font-semibold mb-1 border border-blue-400/20">
+                        <i class="fa-solid fa-store text-amber-400"></i> Boutique & Centre Numérique
+                    </div>
+                    <h2 class="text-2xl font-extrabold tracking-tight text-white">
+                        Cahier Journal de Caisse
+                    </h2>
+                    <p class="text-sm text-slate-300 mt-0.5 max-w-xl">
+                        Suivi des recettes, dépenses et calcul automatique du solde continu.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Photocopier Quick Badge -->
+            <div class="flex items-center gap-3 bg-white/10 backdrop-blur-md px-4 py-3 rounded-xl border border-white/10 shadow-inner">
+                <img src="/static/images/photocopieuse.jpg" alt="Photocopieuse" class="w-12 h-12 rounded-lg object-cover border border-blue-300/40">
+                <div class="text-left">
+                    <div class="text-xs font-bold text-amber-300">Services d'Imprimerie</div>
+                    <div class="text-[11px] text-slate-200">Photocopies • Impressions • Reliures</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Official Header for Print Mode Only -->
+    <div class="print-only mb-6 border-b-2 border-slate-800 pb-4">
+        <div class="flex justify-between items-center">
+            <div>
+                <h1 class="text-2xl font-bold text-blue-950 uppercase">Boutique Carlo Acutis Foundation</h1>
+                <p class="text-xs text-slate-600">Cahier Journal de Caisse — Services Numériques, Impressions & Fournitures</p>
+                <p class="text-xs font-semibold text-slate-800 mt-1">Période : {{ current_filter_title }}</p>
+            </div>
+            <div class="text-right text-xs text-slate-500">
+                <p>Édité le : {{ today_str }}</p>
+                <p>Responsable : {{ current_user.full_name }} ({{ current_user.role|upper }})</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Financial KPI Summary Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        
+        <!-- Total Entrées Card -->
+        <div class="bg-blue-50 border border-blue-200 rounded-2xl p-5 shadow-sm transition hover:shadow-md">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-bold text-blue-700 uppercase tracking-wider">Total Entrées (Recettes)</p>
+                    <p class="text-2xl font-black text-blue-900 mt-1">{{ "{:,.0f}".format(total_entrees)|replace(",", " ") }} <span class="text-xs font-semibold">FCFA</span></p>
+                </div>
+                <div class="w-12 h-12 rounded-xl bg-blue-600 text-white flex items-center justify-center text-xl shadow-md shadow-blue-500/20">
+                    <i class="fa-solid fa-arrow-down-left"></i>
+                </div>
+            </div>
+            <div class="mt-3 text-xs text-blue-600 flex items-center gap-1 font-medium">
+                <i class="fa-solid fa-circle-check"></i> Ventes, photocopies & services
+            </div>
+        </div>
+
+        <!-- Total Sorties Card -->
+        <div class="bg-amber-50 border border-amber-200 rounded-2xl p-5 shadow-sm transition hover:shadow-md">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-bold text-amber-800 uppercase tracking-wider">Total Sorties (Dépenses)</p>
+                    <p class="text-2xl font-black text-amber-950 mt-1">{{ "{:,.0f}".format(total_sorties)|replace(",", " ") }} <span class="text-xs font-semibold">FCFA</span></p>
+                </div>
+                <div class="w-12 h-12 rounded-xl bg-amber-500 text-white flex items-center justify-center text-xl shadow-md shadow-amber-500/20">
+                    <i class="fa-solid fa-arrow-up-right"></i>
+                </div>
+            </div>
+            <div class="mt-3 text-xs text-amber-700 flex items-center gap-1 font-medium">
+                <i class="fa-solid fa-cart-shopping"></i> Achats papier, encre & frais
+            </div>
+        </div>
+
+        <!-- Solde Net Card -->
+        <div class="bg-emerald-50 border border-emerald-200 rounded-2xl p-5 shadow-sm transition hover:shadow-md">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-bold text-emerald-800 uppercase tracking-wider">Solde en Caisse</p>
+                    <p class="text-2xl font-black text-emerald-950 mt-1">{{ "{:,.0f}".format(current_solde)|replace(",", " ") }} <span class="text-xs font-semibold">FCFA</span></p>
+                </div>
+                <div class="w-12 h-12 rounded-xl bg-emerald-600 text-white flex items-center justify-center text-xl shadow-md shadow-emerald-500/20">
+                    <i class="fa-solid fa-vault"></i>
+                </div>
+            </div>
+            <div class="mt-3 text-xs text-emerald-700 flex items-center gap-1 font-medium">
+                <i class="fa-solid fa-chart-line"></i> Solde cumulé progressif
+            </div>
+        </div>
+
+        <!-- Operations Count Card -->
+        <div class="bg-slate-50 border border-slate-200 rounded-2xl p-5 shadow-sm transition hover:shadow-md">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-bold text-slate-600 uppercase tracking-wider">Lignes Écritures</p>
+                    <p class="text-2xl font-black text-slate-900 mt-1">{{ transactions|length }} <span class="text-xs font-semibold">opérations</span></p>
+                </div>
+                <div class="w-12 h-12 rounded-xl bg-slate-700 text-white flex items-center justify-center text-xl shadow-md shadow-slate-500/20">
+                    <i class="fa-solid fa-receipt"></i>
+                </div>
+            </div>
+            <div class="mt-3 text-xs text-slate-500 flex items-center gap-1 font-medium">
+                <i class="fa-solid fa-filter"></i> {{ current_filter_title }}
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Quick Entry Form Section (Accordion or Toggle Box) -->
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden no-print">
+        <div class="bg-gradient-to-r from-blue-900 to-indigo-900 px-6 py-4 flex items-center justify-between cursor-pointer" onclick="toggleEntryForm()">
+            <div class="flex items-center space-x-3 text-white">
+                <div class="w-8 h-8 rounded-lg bg-amber-400 text-blue-950 flex items-center justify-center font-bold text-sm">
+                    <i class="fa-solid fa-plus"></i>
+                </div>
+                <div>
+                    <h3 class="font-bold text-base leading-tight">Nouvelle Saisie au Cahier Journal</h3>
+                    <p class="text-xs text-blue-200">Enregistrer une recette ou une dépense en caisse</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-3">
+                <span class="text-xs bg-blue-800/80 text-blue-200 px-3 py-1 rounded-full border border-blue-700">
+                    Opérateur : {{ current_user.full_name }}
+                </span>
+                <i id="entryChevron" class="fa-solid fa-chevron-down text-white transition-transform duration-300"></i>
+            </div>
+        </div>
+
+        <form id="entryForm" action="/transactions/create" method="POST" class="p-6 bg-slate-50/50 space-y-4">
+            
+            {% if current_user.role == 'secretaire' %}
+            <div class="bg-blue-50 border-l-4 border-blue-500 p-3 rounded-r-lg text-xs text-blue-900 flex items-start gap-2.5">
+                <i class="fa-solid fa-circle-info text-blue-600 mt-0.5 text-sm"></i>
+                <div>
+                    <span class="font-bold">Rappel Secrétaire :</span> Vérifiez attentivement le montant avant d'enregistrer. Une fois validée, la ligne est archivée et ne peut plus être modifiée par la secrétaire. En cas d'erreur de saisie, le DG ou le DG Adjoint aura la main pour rectifier.
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                
+                <!-- Date -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1.5">
+                        <i class="fa-regular fa-calendar text-blue-600"></i> Date de l'opération
+                    </label>
+                    <input type="date" name="date" required value="{{ today_str }}" 
+                           class="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-medium">
+                </div>
+
+                <!-- Dropdown Opération / Catégorie -->
+                <div class="lg:col-span-2">
+                    <label class="block text-xs font-bold text-slate-700 mb-1.5 flex items-center justify-between">
+                        <span><i class="fa-solid fa-list-ul text-blue-600"></i> Opération (Liste Déroulante)</span>
+                        {% if current_user.role in ['dg', 'dg_adjoint'] %}
+                        <a href="/categories" class="text-[11px] text-blue-600 hover:underline font-normal">+ Ajouter catégorie</a>
+                        {% endif %}
+                    </label>
+                    <select id="categorySelect" name="category_name" required onchange="handleCategoryChange(this)"
+                            class="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-medium">
+                        <option value="" disabled selected>-- Choisissez une opération --</option>
+                        {% for cat in categories %}
+                            <option value="{{ cat.name }}" data-optype="{{ cat.operation_type }}">
+                                {{ cat.name }} {% if cat.operation_type == 'entree' %}(Recette){% elif cat.operation_type == 'sortie' %}(Dépense){% endif %}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Type: Entrée ou Sortie -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1.5">
+                        <i class="fa-solid fa-arrows-left-right text-blue-600"></i> Nature du flux
+                    </label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <label class="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-bold cursor-pointer transition has-[:checked]:bg-blue-100 has-[:checked]:border-blue-500 has-[:checked]:text-blue-800 bg-white border-slate-200 text-slate-600">
+                            <input type="radio" name="type" id="typeEntree" value="entree" checked class="hidden" onchange="updateAmountStyling()">
+                            <span>Entrée (Bleu)</span>
+                        </label>
+                        <label class="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-bold cursor-pointer transition has-[:checked]:bg-amber-100 has-[:checked]:border-amber-500 has-[:checked]:text-amber-800 bg-white border-slate-200 text-slate-600">
+                            <input type="radio" name="type" id="typeSortie" value="sortie" class="hidden" onchange="updateAmountStyling()">
+                            <span>Sortie (Jaune)</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Montant -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1.5">
+                        <i class="fa-solid fa-coins text-amber-500"></i> Montant (FCFA)
+                    </label>
+                    <div class="relative">
+                        <input type="number" step="any" min="1" name="amount" required placeholder="Ex: 2500" 
+                               id="amountInput"
+                               class="w-full pl-3 pr-12 py-2 text-sm bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-bold text-slate-900">
+                        <span class="absolute right-3 top-2.5 text-xs font-bold text-slate-400">FCFA</span>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Observation / Notes & Submit Button -->
+            <div class="flex flex-col sm:flex-row gap-4 pt-2 border-t border-slate-200/80 items-center justify-between">
+                <div class="w-full sm:w-2/3">
+                    <input type="text" name="description" placeholder="Observation ou précision (optionnel, ex: Reçu N°124, 50 copies A4...)" 
+                           class="w-full px-3 py-2 text-xs bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 font-normal">
+                </div>
+
+                <div class="w-full sm:w-1/3 flex justify-end">
+                    <button type="submit" 
+                            class="w-full sm:w-auto bg-gradient-to-r from-blue-700 to-indigo-700 hover:from-blue-800 hover:to-indigo-800 text-white font-bold text-sm px-6 py-2.5 rounded-xl shadow-md shadow-blue-700/20 transition flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-check-circle"></i>
+                        <span>Enregistrer l'opération</span>
+                    </button>
+                </div>
+            </div>
+
+        </form>
+    </div>
+
+    <!-- Filter & Toolbar Bar -->
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 space-y-4 no-print">
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+            
+            <!-- Quick Period Filter Tabs -->
+            <div class="flex flex-wrap items-center gap-2">
+                <span class="text-xs font-bold text-slate-500 uppercase mr-1">Afficher :</span>
+                
+                <a href="/journal?period=today" 
+                   class="px-3 py-1.5 rounded-xl text-xs font-semibold transition {% if current_period == 'today' %}bg-blue-600 text-white shadow-sm{% else %}bg-slate-100 hover:bg-slate-200 text-slate-700{% endif %}">
+                    <i class="fa-regular fa-sun mr-1"></i> Aujourd'hui
+                </a>
+                
+                <a href="/journal?period=current_month" 
+                   class="px-3 py-1.5 rounded-xl text-xs font-semibold transition {% if current_period == 'current_month' %}bg-blue-600 text-white shadow-sm{% else %}bg-slate-100 hover:bg-slate-200 text-slate-700{% endif %}">
+                    <i class="fa-regular fa-calendar-days mr-1"></i> Ce Mois-ci
+                </a>
+
+                <a href="/journal?period=all" 
+                   class="px-3 py-1.5 rounded-xl text-xs font-semibold transition {% if current_period == 'all' %}bg-blue-600 text-white shadow-sm{% else %}bg-slate-100 hover:bg-slate-200 text-slate-700{% endif %}">
+                    <i class="fa-solid fa-list mr-1"></i> Tout l'historique
+                </a>
+            </div>
+
+            <!-- Export and Print Buttons -->
+            <div class="flex items-center gap-2">
+                <a href="/export/excel?period={{ current_period }}&date_start={{ date_start or '' }}&date_end={{ date_end or '' }}&search={{ search_query or '' }}" 
+                   class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm transition">
+                    <i class="fa-solid fa-file-excel"></i>
+                    <span>Exporter Excel (.xlsx)</span>
+                </a>
+
+                <button onclick="window.print()" 
+                        class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-900 text-white shadow-sm transition">
+                    <i class="fa-solid fa-print"></i>
+                    <span>Imprimer</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Custom Date Range & Search Form -->
+        <form action="/journal" method="GET" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3 pt-3 border-t border-slate-100 items-end">
+            <input type="hidden" name="period" value="custom">
+
+            <div>
+                <label class="block text-[11px] font-bold text-slate-600 mb-1">Du (Date Début)</label>
+                <input type="date" name="date_start" value="{{ date_start or '' }}" 
+                       class="w-full px-3 py-1.5 text-xs bg-slate-50 border border-slate-300 rounded-lg focus:ring-1 focus:ring-blue-500 font-medium">
+            </div>
+
+            <div>
+                <label class="block text-[11px] font-bold text-slate-600 mb-1">Au (Date Fin)</label>
+                <input type="date" name="date_end" value="{{ date_end or '' }}" 
+                       class="w-full px-3 py-1.5 text-xs bg-slate-50 border border-slate-300 rounded-lg focus:ring-1 focus:ring-blue-500 font-medium">
+            </div>
+
+            <div class="sm:col-span-2">
+                <label class="block text-[11px] font-bold text-slate-600 mb-1">Recherche (Opération, note, auteur)</label>
+                <div class="relative">
+                    <input type="text" name="search" value="{{ search_query or '' }}" placeholder="Ex: Photocopie, Ram papier..." 
+                           class="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-300 rounded-lg focus:ring-1 focus:ring-blue-500">
+                    <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-2 text-slate-400 text-xs"></i>
+                </div>
+            </div>
+
+            <div class="flex gap-2">
+                <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-2 px-3 rounded-lg transition flex items-center justify-center gap-1.5">
+                    <i class="fa-solid fa-filter"></i> Filtrer
+                </button>
+                <a href="/journal?period=current_month" class="bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-bold py-2 px-3 rounded-lg transition" title="Réinitialiser">
+                    <i class="fa-solid fa-rotate-left"></i>
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Main Cahier Journal Ledger Table (Replicating exact colors from the user's Excel) -->
+    <div class="bg-white rounded-2xl shadow-md border border-slate-200 overflow-hidden">
+        
+        <!-- Table Header Bar -->
+        <div class="px-6 py-4 bg-slate-100 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
+                <i class="fa-solid fa-book-open text-blue-700"></i>
+                <h3 class="font-bold text-slate-800 text-sm">Registre des Écritures — {{ current_filter_title }}</h3>
+            </div>
+            <div class="text-xs text-slate-500 flex items-center gap-3">
+                <span class="inline-flex items-center gap-1"><span class="w-3 h-3 rounded-sm bg-blue-200 border border-blue-400"></span> Entrée (Bleu)</span>
+                <span class="inline-flex items-center gap-1"><span class="w-3 h-3 rounded-sm bg-yellow-200 border border-yellow-400"></span> Sortie (Jaune)</span>
+                <span class="inline-flex items-center gap-1"><span class="w-3 h-3 rounded-sm bg-emerald-200 border border-emerald-400"></span> Solde (Vert)</span>
+            </div>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full border-collapse text-left text-xs sm:text-sm">
+                <thead>
+                    <tr class="border-b border-slate-300 bg-slate-200 text-slate-800 uppercase text-[11px] font-black tracking-wider">
+                        <th class="py-3 px-4 border-r border-slate-300 w-28 text-center">Date</th>
+                        <th class="py-3 px-4 border-r border-slate-300">Opération / Libellé</th>
+                        <th class="py-3 px-4 border-r border-slate-300 text-right w-36 bg-blue-100/90 text-blue-900">
+                            Entrée (FCFA)
+                        </th>
+                        <th class="py-3 px-4 border-r border-slate-300 text-right w-36 bg-yellow-100/90 text-yellow-900">
+                            Sortie (FCFA)
+                        </th>
+                        <th class="py-3 px-4 border-r border-slate-300 text-right w-40 bg-emerald-100/90 text-emerald-950 font-black">
+                            Solde Cumulé
+                        </th>
+                        <th class="py-3 px-4 border-r border-slate-300">Observation & Saisi par</th>
+                        <th class="py-3 px-4 text-center w-28 no-print">Action</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200">
+                    
+                    {% if transactions|length == 0 %}
+                    <tr>
+                        <td colspan="7" class="py-12 text-center text-slate-400 italic">
+                            <i class="fa-regular fa-folder-open text-4xl mb-3 block text-slate-300"></i>
+                            Aucune opération trouvée pour cette période.
+                        </td>
+                    </tr>
+                    {% endif %}
+
+                    {% for item in transactions %}
+                    <tr class="hover:bg-slate-50/80 transition duration-150">
+                        
+                        <!-- Date Column -->
+                        <td class="py-2.5 px-4 font-bold text-slate-700 text-center border-r border-slate-200 bg-slate-50/50">
+                            {{ item.date_display }}
+                        </td>
+
+                        <!-- Opération Column -->
+                        <td class="py-2.5 px-4 font-semibold text-slate-800 border-r border-slate-200">
+                            <span class="inline-flex items-center gap-1.5">
+                                {% if item.type == 'entree' %}
+                                <i class="fa-solid fa-circle-arrow-down text-blue-500 text-xs"></i>
+                                {% else %}
+                                <i class="fa-solid fa-circle-arrow-up text-amber-500 text-xs"></i>
+                                {% endif %}
+                                <span>{{ item.category_name }}</span>
+                            </span>
+                        </td>
+
+                        <!-- Entrée Column (Light Blue Fill like Excel) -->
+                        <td class="py-2.5 px-4 font-bold text-right border-r border-slate-200 bg-blue-50 text-blue-800">
+                            {% if item.type == 'entree' %}
+                                {{ "{:,.0f}".format(item.amount)|replace(",", " ") }}
+                            {% endif %}
+                        </td>
+
+                        <!-- Sortie Column (Light Yellow Fill like Excel) -->
+                        <td class="py-2.5 px-4 font-bold text-right border-r border-slate-200 bg-yellow-50 text-amber-900">
+                            {% if item.type == 'sortie' %}
+                                {{ "{:,.0f}".format(item.amount)|replace(",", " ") }}
+                            {% endif %}
+                        </td>
+
+                        <!-- Solde Column (Light Green Fill like Excel) -->
+                        <td class="py-2.5 px-4 font-black text-right border-r border-slate-200 bg-emerald-50 text-emerald-900">
+                            {{ "{:,.0f}".format(item.running_balance)|replace(",", " ") }}
+                        </td>
+
+                        <!-- Observation & Author -->
+                        <td class="py-2.5 px-4 text-xs text-slate-600 border-r border-slate-200">
+                            {% if item.description %}
+                                <span class="font-medium text-slate-800">{{ item.description }}</span>
+                            {% endif %}
+                            <div class="text-[11px] text-slate-400 mt-0.5 flex items-center gap-1.5">
+                                <i class="fa-regular fa-user text-[10px]"></i>
+                                <span>{{ item.created_by_user }}</span>
+                                {% if item.updated_by_user %}
+                                <span class="text-amber-600 italic">(corrigé par {{ item.updated_by_user }})</span>
+                                {% endif %}
+                            </div>
+                        </td>
+
+                        <!-- Action Column (Permission Control) -->
+                        <td class="py-2.5 px-4 text-center no-print">
+                            {% if current_user.role in ['dg', 'dg_adjoint'] %}
+                            <!-- DG & DG Adjoint have full editing rights -->
+                            <div class="inline-flex items-center gap-1.5">
+                                <button onclick='openEditModal({{ item|tojson }})' 
+                                        class="p-1.5 text-blue-600 hover:text-blue-900 hover:bg-blue-100 rounded-lg transition" 
+                                        title="Corriger l'écriture (DG)">
+                                    <i class="fa-solid fa-pen-to-square"></i>
+                                </button>
+                                
+                                <form action="/transactions/delete/{{ item.id }}" method="POST" onsubmit="return confirm('Attention DG : Confirmez-vous la suppression de cette opération ?');" class="inline">
+                                    <button type="submit" class="p-1.5 text-rose-500 hover:text-rose-800 hover:bg-rose-100 rounded-lg transition" title="Supprimer l'écriture">
+                                        <i class="fa-solid fa-trash-can"></i>
+                                    </button>
+                                </form>
+                            </div>
+                            {% else %}
+                            <!-- Secrétaire cannot edit after submission -->
+                            <span class="inline-flex items-center gap-1 text-[11px] font-medium text-slate-400 bg-slate-100 px-2 py-1 rounded-md" title="Écriture validée. Seul le DG peut apporter des corrections.">
+                                <i class="fa-solid fa-lock text-[10px] text-slate-400"></i>
+                                <span>Verrouillé</span>
+                            </span>
+                            {% endif %}
+                        </td>
+
+                    </tr>
+                    {% endfor %}
+                </tbody>
+
+                <!-- Totals Summary Row at Bottom -->
+                <tfoot>
+                    <tr class="bg-slate-200 border-t-2 border-slate-400 text-slate-900 font-black text-xs sm:text-sm">
+                        <td colspan="2" class="py-3 px-4 text-right uppercase tracking-wider border-r border-slate-300">
+                            TOTAUX DE LA PÉRIODE :
+                        </td>
+                        <td class="py-3 px-4 text-right border-r border-slate-300 bg-blue-200/90 text-blue-950 font-black">
+                            {{ "{:,.0f}".format(total_entrees)|replace(",", " ") }} FCFA
+                        </td>
+                        <td class="py-3 px-4 text-right border-r border-slate-300 bg-yellow-200/90 text-amber-950 font-black">
+                            {{ "{:,.0f}".format(total_sorties)|replace(",", " ") }} FCFA
+                        </td>
+                        <td class="py-3 px-4 text-right border-r border-slate-300 bg-emerald-200/90 text-emerald-950 font-black">
+                            {{ "{:,.0f}".format(current_solde)|replace(",", " ") }} FCFA
+                        </td>
+                        <td colspan="2" class="py-3 px-4 text-xs text-slate-600">
+                            Bénéfice Net : <span class="font-bold {% if total_entrees - total_sorties >= 0 %}text-emerald-700{% else %}text-rose-700{% endif %}">{{ "{:,.0f}".format(total_entrees - total_sorties)|replace(",", " ") }} FCFA</span>
+                        </td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+
+    <!-- Print Signatures Section -->
+    <div class="print-only mt-12 grid grid-cols-2 gap-8 text-center text-xs">
+        <div class="border-t border-slate-400 pt-3">
+            <p class="font-bold uppercase text-slate-700">Signature de la Secrétaire de Caisse</p>
+            <p class="text-slate-400 italic mt-8">(Visa & Date)</p>
+        </div>
+        <div class="border-t border-slate-400 pt-3">
+            <p class="font-bold uppercase text-slate-700">Signature de la Direction Générale (DG / DGA)</p>
+            <p class="text-slate-400 italic mt-8">(Approuvé & Enregistré)</p>
+        </div>
+    </div>
+
+</div>
+
+<!-- Edit Transaction Modal (Reserved for DG & DG Adjoint) -->
+<div id="editModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-200 animate-in fade-in zoom-in-95 duration-200">
+        
+        <div class="bg-gradient-to-r from-blue-900 to-indigo-900 px-6 py-4 flex items-center justify-between text-white">
+            <div class="flex items-center gap-2">
+                <i class="fa-solid fa-pen-to-square text-amber-400"></i>
+                <h3 class="font-bold text-base">Correction d'Écriture (Contrôle DG)</h3>
+            </div>
+            <button onclick="closeEditModal()" class="text-white/80 hover:text-white text-lg">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+
+        <form id="editForm" method="POST" class="p-6 space-y-4">
+            <input type="hidden" id="edit_id" name="id">
+
+            <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">Date</label>
+                <input type="date" id="edit_date" name="date" required 
+                       class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 font-medium">
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">Opération / Catégorie</label>
+                <select id="edit_category" name="category_name" required 
+                        class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 font-medium">
+                    {% for cat in categories %}
+                        <option value="{{ cat.name }}">{{ cat.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">Nature du flux</label>
+                <div class="grid grid-cols-2 gap-3">
+                    <label class="flex items-center justify-center gap-2 p-2 border rounded-xl cursor-pointer text-xs font-bold has-[:checked]:bg-blue-100 has-[:checked]:border-blue-500 has-[:checked]:text-blue-800">
+                        <input type="radio" id="edit_type_entree" name="type" value="entree">
+                        <span>Entrée (Recette)</span>
+                    </label>
+                    <label class="flex items-center justify-center gap-2 p-2 border rounded-xl cursor-pointer text-xs font-bold has-[:checked]:bg-amber-100 has-[:checked]:border-amber-500 has-[:checked]:text-amber-800">
+                        <input type="radio" id="edit_type_sortie" name="type" value="sortie">
+                        <span>Sortie (Dépense)</span>
+                    </label>
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">Montant (FCFA)</label>
+                <input type="number" step="any" min="1" id="edit_amount" name="amount" required 
+                       class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 font-bold">
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">Observation / Motif de correction</label>
+                <input type="text" id="edit_description" name="description" placeholder="Ex: Rectification erreur de saisie..." 
+                       class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500">
+            </div>
+
+            <div class="flex justify-end gap-3 pt-3 border-t border-slate-200">
+                <button type="button" onclick="closeEditModal()" class="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-bold rounded-xl transition">
+                    Annuler
+                </button>
+                <button type="submit" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-md transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-floppy-disk"></i>
+                    <span>Valider la correction</span>
+                </button>
+            </div>
+        </form>
+
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function toggleEntryForm() {
+        const form = document.getElementById('entryForm');
+        const chevron = document.getElementById('entryChevron');
+        form.classList.toggle('hidden');
+        chevron.classList.toggle('rotate-180');
+    }
+
+    function handleCategoryChange(select) {
+        const selected = select.options[select.selectedIndex];
+        const optype = selected.getAttribute('data-optype');
+        const typeEntree = document.getElementById('typeEntree');
+        const typeSortie = document.getElementById('typeSortie');
+
+        if (optype === 'sortie') {
+            typeSortie.checked = true;
+        } else if (optype === 'entree') {
+            typeEntree.checked = true;
+        }
+        updateAmountStyling();
+    }
+
+    function updateAmountStyling() {
+        const isEntree = document.getElementById('typeEntree').checked;
+        const input = document.getElementById('amountInput');
+        if (isEntree) {
+            input.classList.remove('focus:ring-amber-500', 'focus:border-amber-500');
+            input.classList.add('focus:ring-blue-500', 'focus:border-blue-500');
+        } else {
+            input.classList.remove('focus:ring-blue-500', 'focus:border-blue-500');
+            input.classList.add('focus:ring-amber-500', 'focus:border-amber-500');
+        }
+    }
+
+    function openEditModal(item) {
+        document.getElementById('edit_id').value = item.id;
+        document.getElementById('edit_date').value = item.date;
+        document.getElementById('edit_category').value = item.category_name;
+        document.getElementById('edit_amount').value = item.amount;
+        document.getElementById('edit_description').value = item.description || '';
+        
+        if (item.type === 'entree') {
+            document.getElementById('edit_type_entree').checked = true;
+        } else {
+            document.getElementById('edit_type_sortie').checked = true;
+        }
+
+        document.getElementById('editForm').action = '/transactions/update/' + item.id;
+        document.getElementById('editModal').classList.remove('hidden');
+    }
+
+    function closeEditModal() {
+        document.getElementById('editModal').classList.add('hidden');
+    }
+
+    // Close modal on Escape key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') closeEditModal();
+    });
+</script>
+{% endblock %}
