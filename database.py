@@ -113,9 +113,9 @@ def init_db():
     c.execute("SELECT COUNT(*) FROM users")
     if c.fetchone()[0] == 0:
         users = [
-            ("dg", "Directeur Général", "dg", hash_pw("dg2026"), "1234"),
-            ("dg_adjoint", "DG Adjoint", "dg_adjoint", hash_pw("dga2026"), "1234"),
-            ("secretaire", "Secrétaire de Caisse", "secretaire", hash_pw("sec2026"), "1234"),
+            ("dg", "Directeur Général", "dg", hash_pw("12345"), "12345"),
+            ("dg_adjoint", "DG Adjoint", "dg_adjoint", hash_pw("23456"), "23456"),
+            ("secretaire", "Secrétaire de Caisse", "secretaire", hash_pw("4231"), "4231"),
         ]
         c.executemany("INSERT INTO users (username, full_name, role, password_hash, pin) VALUES (?, ?, ?, ?, ?)", users)
 

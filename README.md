@@ -57,13 +57,13 @@ Application web complète développée en **Python** pour la gestion quotidienne
 
 ---
 
-## 🔐 Identifiants de Connexion par Défaut
+## 🔐 Identifiants de Connexion
 
-| Rôle | Nom d'utilisateur | Code PIN | Mot de passe | Droits d'accès |
-| :--- | :--- | :--- | :--- | :--- |
-| **Directeur Général (DG)** | `dg` | `1234` | `dg2026` | Contrôle total, corrections, suppression, catégories |
-| **DG Adjoint** | `dg_adjoint` | `1234` | `dga2026` | Supervision, corrections, catégories |
-| **Secrétaire de Caisse** | `secretaire` | `1234` | `sec2026` | Saisie des flux & consultation (non modifiable) |
+| Rôle | Nom d'utilisateur | Code PIN | Droits d'accès |
+| :--- | :--- | :--- | :--- |
+| **Directeur Général (DG)** | `dg` | `12345` | Contrôle total, corrections d'erreurs, suppression, gestion catégories |
+| **DG Adjoint** | `dg_adjoint` | `23456` | Supervision, corrections d'erreurs, gestion catégories |
+| **Secrétaire de Caisse** | `secretaire` | `4231` | Saisie des flux & consultation (non modifiable après saisie) |
 
 ---
 

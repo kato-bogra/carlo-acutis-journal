@@ -23,42 +23,59 @@ def test_journal_view_dg():
     assert "18 850" in response.text  # Cumulative balance from image!
 
 def test_login_flow():
-    # Login as Secretaire
-    resp = client.post("/login", data={"username": "secretaire", "password": "1234"}, follow_redirects=False)
-    assert resp.status_code == 303
-    assert "cahier_user=secretaire" in resp.headers["set-cookie"]
+    # 1. Login as Secretaire with 4231
+    resp_sec = client.post("/login", data={"username": "secretaire", "password": "4231"}, follow_redirects=False)
+    assert resp_sec.status_code == 303
+    assert "cahier_user=secretaire" in resp_sec.headers["set-cookie"]
+
+    # 2. Login as DG with 12345
+    resp_dg = client.post("/login", data={"username": "dg", "password": "12345"}, follow_redirects=False)
+    assert resp_dg.status_code == 303
+    assert "cahier_user=dg" in resp_dg.headers["set-cookie"]
+
+    # 3. Login as DG Adjoint with 23456
+    resp_dga = client.post("/login", data={"username": "dg_adjoint", "password": "23456"}, follow_redirects=False)
+    assert resp_dga.status_code == 303
+    assert "cahier_user=dg_adjoint" in resp_dga.headers["set-cookie"]
+
+    # 4. Wrong password should be rejected
+    resp_bad = client.post("/login", data={"username": "dg", "password": "wrong"}, follow_redirects=False)
+    assert resp_bad.status_code == 303
+    assert "error" in resp_bad.headers["location"]
 
 def test_secretaire_permissions():
+    sec_client = TestClient(app)
+    sec_client.cookies.set("cahier_user", "secretaire")
+
     # 1. Create transaction as secretaire -> Should succeed
-    cookies = {"cahier_user": "secretaire"}
-    create_resp = client.post("/transactions/create", data={
+    create_resp = sec_client.post("/transactions/create", data={
         "date": "2026-09-24",
         "category_name": "Photocopie",
         "type": "entree",
         "amount": "500",
         "description": "5 photocopies A4"
-    }, cookies=cookies, follow_redirects=True)
+    }, follow_redirects=True)
     assert create_resp.status_code == 200
     assert "enregistrée avec succès" in create_resp.text
 
     # 2. Try to update a transaction as secretaire -> Should be BLOCKED!
-    update_resp = client.post("/transactions/update/1", data={
+    update_resp = sec_client.post("/transactions/update/1", data={
         "date": "2026-09-01",
         "category_name": "Photocopie",
         "type": "entree",
         "amount": "9999",
         "description": "Hack"
-    }, cookies=cookies, follow_redirects=True)
+    }, follow_redirects=True)
     assert update_resp.status_code == 200
     assert "Action refusée" in update_resp.text
 
     # 3. Try to delete as secretaire -> Should be BLOCKED!
-    del_resp = client.post("/transactions/delete/1", cookies=cookies, follow_redirects=True)
+    del_resp = sec_client.post("/transactions/delete/1", follow_redirects=True)
     assert del_resp.status_code == 200
     assert "Action refusée" in del_resp.text
 
     # 4. Try to access categories management -> Should be BLOCKED!
-    cat_resp = client.get("/categories", cookies=cookies, follow_redirects=True)
+    cat_resp = sec_client.get("/categories", follow_redirects=True)
     assert cat_resp.status_code == 200
     assert "Accès refusé" in cat_resp.text
 

@@ -56,13 +56,13 @@
                     <!-- Secrétaire Card -->
                     <label class="flex items-center justify-between p-3.5 border-2 rounded-2xl cursor-pointer transition hover:border-blue-400 has-[:checked]:border-blue-600 has-[:checked]:bg-blue-50/50">
                         <div class="flex items-center gap-3">
-                            <input type="radio" name="role_select" value="secretaire" checked onchange="selectUser('secretaire', '1234')" class="text-blue-600 focus:ring-blue-500">
+                            <input type="radio" name="role_select" value="secretaire" checked onchange="selectUser('secretaire', '4231')" class="text-blue-600 focus:ring-blue-500">
                             <div>
                                 <div class="text-sm font-bold text-slate-900 flex items-center gap-1.5">
                                     <i class="fa-solid fa-keyboard text-emerald-600"></i>
                                     <span>Secrétaire de Caisse</span>
                                 </div>
-                                <div class="text-[11px] text-slate-500">Saisie des entrées/sorties & consultation</div>
+                                <div class="text-[11px] text-slate-500">Saisie des flux & consultation</div>
                             </div>
                         </div>
                         <span class="text-[10px] font-bold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full">Saisie</span>
@@ -71,7 +71,7 @@
                     <!-- DG Card -->
                     <label class="flex items-center justify-between p-3.5 border-2 rounded-2xl cursor-pointer transition hover:border-amber-400 has-[:checked]:border-amber-600 has-[:checked]:bg-amber-50/50">
                         <div class="flex items-center gap-3">
-                            <input type="radio" name="role_select" value="dg" onchange="selectUser('dg', '1234')" class="text-amber-600 focus:ring-amber-500">
+                            <input type="radio" name="role_select" value="dg" onchange="selectUser('dg', '12345')" class="text-amber-600 focus:ring-amber-500">
                             <div>
                                 <div class="text-sm font-bold text-slate-900 flex items-center gap-1.5">
                                     <i class="fa-solid fa-user-tie text-amber-600"></i>
@@ -86,7 +86,7 @@
                     <!-- DG Adjoint Card -->
                     <label class="flex items-center justify-between p-3.5 border-2 rounded-2xl cursor-pointer transition hover:border-purple-400 has-[:checked]:border-purple-600 has-[:checked]:bg-purple-50/50">
                         <div class="flex items-center gap-3">
-                            <input type="radio" name="role_select" value="dg_adjoint" onchange="selectUser('dg_adjoint', '1234')" class="text-purple-600 focus:ring-purple-500">
+                            <input type="radio" name="role_select" value="dg_adjoint" onchange="selectUser('dg_adjoint', '23456')" class="text-purple-600 focus:ring-purple-500">
                             <div>
                                 <div class="text-sm font-bold text-slate-900 flex items-center gap-1.5">
                                     <i class="fa-solid fa-user-shield text-purple-600"></i>
@@ -107,11 +107,11 @@
                 
                 <div>
                     <div class="flex items-center justify-between mb-1">
-                        <label class="text-xs font-bold text-slate-700">Code PIN ou Mot de passe</label>
-                        <span class="text-[11px] text-slate-400">Défaut: 1234</span>
+                        <label class="text-xs font-bold text-slate-700">Code PIN confidentiel</label>
+                        <span class="text-[11px] text-slate-400">DG: 12345 | Adjoint: 23456 | Sec: 4231</span>
                     </div>
                     <div class="relative">
-                        <input type="password" id="password_field" name="password" required value="1234" 
+                        <input type="password" id="password_field" name="password" required value="4231" 
                                class="w-full pl-10 pr-4 py-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 font-mono tracking-widest text-center">
                         <i class="fa-solid fa-key absolute left-3.5 top-3.5 text-slate-400 text-xs"></i>
                     </div>
