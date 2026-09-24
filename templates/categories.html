@@ -38,11 +38,20 @@
                 </div>
 
                 <div>
-                    <label class="block text-xs font-bold text-slate-700 mb-1">Nature par défaut</label>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Nature de flux</label>
                     <select name="operation_type" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 font-medium">
-                        <option value="entree">Entrée (Recette / Prestation / Vente)</option>
-                        <option value="sortie">Sortie (Dépense / Achat / Frais)</option>
+                        <option value="entree">Entrée (Recette)</option>
+                        <option value="sortie">Sortie (Dépense / Achat)</option>
                         <option value="both">Flexible (Recette ou Dépense)</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Classification d'activité</label>
+                    <select name="activity_type" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 font-medium">
+                        <option value="service">🛠️ Prestation de service (Photocopies, Impressions, Saisie...)</option>
+                        <option value="vente">🛍️ Vente de produit (Articles, Livres, Livrets...)</option>
+                        <option value="depense">📦 Dépense / Charge (Fournitures, Frais, Loyer...)</option>
                     </select>
                 </div>
 
@@ -66,7 +75,8 @@
                         <tr>
                             <th class="py-2.5 px-4">#</th>
                             <th class="py-2.5 px-4">Nom de l'opération</th>
-                            <th class="py-2.5 px-4">Nature</th>
+                            <th class="py-2.5 px-4">Activité</th>
+                            <th class="py-2.5 px-4">Flux</th>
                             <th class="py-2.5 px-4 text-center">Statut</th>
                             <th class="py-2.5 px-4 text-center">Action</th>
                         </tr>
@@ -79,12 +89,21 @@
                                 {{ cat.name }}
                             </td>
                             <td class="py-2.5 px-4">
-                                {% if cat.operation_type == 'entree' %}
-                                    <span class="px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 text-[10px] font-bold">Entrée</span>
-                                {% elif cat.operation_type == 'sortie' %}
-                                    <span class="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[10px] font-bold">Sortie</span>
+                                {% if cat.activity_type == 'service' %}
+                                    <span class="px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 text-[10px] font-bold">🛠️ Prestation</span>
+                                {% elif cat.activity_type == 'vente' %}
+                                    <span class="px-2 py-0.5 rounded-full bg-purple-100 text-purple-800 text-[10px] font-bold">🛍️ Vente</span>
                                 {% else %}
-                                    <span class="px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 text-[10px] font-bold">Les deux</span>
+                                    <span class="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[10px] font-bold">📦 Dépense</span>
+                                {% endif %}
+                            </td>
+                            <td class="py-2.5 px-4">
+                                {% if cat.operation_type == 'entree' %}
+                                    <span class="px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 text-[10px] font-medium">Entrée</span>
+                                {% elif cat.operation_type == 'sortie' %}
+                                    <span class="px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 text-[10px] font-medium">Sortie</span>
+                                {% else %}
+                                    <span class="px-2 py-0.5 rounded-full bg-slate-50 text-slate-700 text-[10px] font-medium">Flexible</span>
                                 {% endif %}
                             </td>
                             <td class="py-2.5 px-4 text-center">

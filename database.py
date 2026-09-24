@@ -14,34 +14,34 @@ DB_PATH = Path(os.environ.get("DB_PATH", Path(__file__).parent / "journal.db"))
 DB_PATH.parent.mkdir(parents=True, exist_ok=True)
 
 INITIAL_CATEGORIES = [
-    ("Abonnement Wifi", "sortie"),
-    ("Achat d'articles", "sortie"),
-    ("Achat d'encre", "sortie"),
-    ("Achat de cash power", "sortie"),
-    ("Achat de papier ram", "sortie"),
-    ("Conception", "entree"),
-    ("Coupe", "entree"),
-    ("Déplacement", "sortie"),
-    ("Entretien des machines", "sortie"),
-    ("Frais d'électricité", "sortie"),
-    ("Impression", "entree"),
-    ("Lamination", "entree"),
-    ("Loyer", "sortie"),
-    ("Photo passeport", "entree"),
-    ("Photocopie", "entree"),
-    ("Reliure", "entree"),
-    ("Reliure de livrets de bénédiction", "entree"),
-    ("Saisie", "entree"),
-    ("Scanner", "entree"),
-    ("Vente d'articles", "entree"),
-    ("Vente d'image", "entree"),
-    ("Vente de livres Anedoctes Mgr", "entree"),
-    ("Vente de livret de bénédiction", "entree"),
-    ("Vente de livret de confirmation", "entree"),
-    ("Vente de livret de rosaire", "entree"),
-    ("Vente de livret Esprit Saint", "entree"),
-    ("Vente de Wifi", "entree"),
-    ("Confection de tampon", "entree"),
+    ("Abonnement Wifi", "sortie", "depense"),
+    ("Achat d'articles", "sortie", "depense"),
+    ("Achat d'encre", "sortie", "depense"),
+    ("Achat de cash power", "sortie", "depense"),
+    ("Achat de papier ram", "sortie", "depense"),
+    ("Conception", "entree", "service"),
+    ("Coupe", "entree", "service"),
+    ("Déplacement", "sortie", "depense"),
+    ("Entretien des machines", "sortie", "depense"),
+    ("Frais d'électricité", "sortie", "depense"),
+    ("Impression", "entree", "service"),
+    ("Lamination", "entree", "service"),
+    ("Loyer", "sortie", "depense"),
+    ("Photo passeport", "entree", "service"),
+    ("Photocopie", "entree", "service"),
+    ("Reliure", "entree", "service"),
+    ("Reliure de livrets de bénédiction", "entree", "service"),
+    ("Saisie", "entree", "service"),
+    ("Scanner", "entree", "service"),
+    ("Vente d'articles", "entree", "vente"),
+    ("Vente d'image", "entree", "vente"),
+    ("Vente de livres Anedoctes Mgr", "entree", "vente"),
+    ("Vente de livret de bénédiction", "entree", "vente"),
+    ("Vente de livret de confirmation", "entree", "vente"),
+    ("Vente de livret de rosaire", "entree", "vente"),
+    ("Vente de livret Esprit Saint", "entree", "vente"),
+    ("Vente de Wifi", "entree", "service"),
+    ("Confection de tampon", "entree", "service"),
 ]
 
 from update_cahier_reel import REAL_TRANSACTIONS
@@ -77,10 +77,34 @@ def init_db():
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT UNIQUE NOT NULL,
         operation_type TEXT NOT NULL DEFAULT 'both', -- 'entree', 'sortie', 'both'
+        activity_type TEXT NOT NULL DEFAULT 'service', -- 'service', 'vente', 'depense'
         is_active INTEGER DEFAULT 1,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
     """)
+
+    # Dynamic migration to ensure activity_type column exists
+    try:
+        c.execute("ALTER TABLE categories ADD COLUMN activity_type TEXT DEFAULT 'service'")
+    except sqlite3.OperationalError:
+        pass
+
+    # Synchronize default activity types
+    c.execute("""
+        UPDATE categories SET activity_type = 'vente' 
+        WHERE operation_type != 'sortie' 
+          AND ((name LIKE 'Vente %' AND name != 'Vente de Wifi') 
+               OR name LIKE '%livret%' 
+               OR name LIKE '%livre%' 
+               OR name LIKE '%article%')
+          AND name NOT LIKE 'Reliure%'
+    """)
+    c.execute("""
+        UPDATE categories SET activity_type = 'service' 
+        WHERE operation_type != 'sortie' 
+          AND (activity_type IS NULL OR activity_type = '' OR activity_type != 'vente' OR name LIKE 'Reliure%')
+    """)
+    c.execute("UPDATE categories SET activity_type = 'depense' WHERE operation_type = 'sortie'")
 
     # Transactions table
     c.execute("""
@@ -123,7 +147,7 @@ def init_db():
     c.execute("SELECT COUNT(*) FROM categories")
     if c.fetchone()[0] == 0:
         c.executemany(
-            "INSERT INTO categories (name, operation_type) VALUES (?, ?)",
+            "INSERT INTO categories (name, operation_type, activity_type) VALUES (?, ?, ?)",
             INITIAL_CATEGORIES
         )
 

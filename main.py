@@ -110,12 +110,39 @@ async def logout():
     response.delete_cookie(key="cahier_user")
     return response
 
+def classify_activity(category_name: str, op_type: str, category_activity_map: Optional[dict] = None) -> tuple[str, str]:
+    """
+    Returns (activity_code, activity_label):
+    - ('service', 'Prestation')
+    - ('vente', 'Vente')
+    - ('depense', 'Dépense')
+    """
+    if op_type == "sortie":
+        return ("depense", "Dépense")
+    
+    if category_activity_map and category_name in category_activity_map:
+        act = category_activity_map[category_name]
+        if act == "vente":
+            return ("vente", "Vente")
+        elif act == "service":
+            return ("service", "Prestation")
+        elif act == "depense":
+            return ("depense", "Dépense")
+
+    cat_l = (category_name or "").lower().strip()
+    if cat_l.startswith("vente ") and "wifi" not in cat_l:
+        return ("vente", "Vente")
+    if any(k in cat_l for k in ["livret", "livre", "article"]) and not cat_l.startswith("reliure"):
+        return ("vente", "Vente")
+    return ("service", "Prestation")
+
 @app.get("/journal", response_class=HTMLResponse)
 async def journal_view(
     request: Request,
     period: Optional[str] = "current_month",
     date_start: Optional[str] = None,
     date_end: Optional[str] = None,
+    activity: Optional[str] = "all",
     search: Optional[str] = None,
     message: Optional[str] = None,
     message_type: Optional[str] = "success"
@@ -129,15 +156,16 @@ async def journal_view(
     conn = database.get_connection()
     c = conn.cursor()
 
-    # 1. Fetch categories for the dropdown
-    c.execute("SELECT id, name, operation_type, is_active FROM categories WHERE is_active = 1 ORDER BY name ASC")
+    # 1. Fetch categories for dropdown & activity map
+    c.execute("SELECT id, name, operation_type, activity_type, is_active FROM categories WHERE is_active = 1 ORDER BY name ASC")
     categories = [dict(r) for r in c.fetchall()]
+    cat_activity_map = {cat["name"]: cat.get("activity_type") for cat in categories}
 
     # 2. Fetch all transactions ordered by date and ID to compute continuous running balances
     c.execute("SELECT * FROM transactions ORDER BY date ASC, id ASC")
     all_raw = [dict(r) for r in c.fetchall()]
 
-    # Calculate global running balances row by row
+    # Calculate global running balances row by row and classify activity
     running_balance = 0.0
     for item in all_raw:
         amt = float(item["amount"])
@@ -147,6 +175,9 @@ async def journal_view(
             running_balance -= amt
         item["running_balance"] = running_balance
         item["date_display"] = format_date_display(item["date"])
+        act_code, act_label = classify_activity(item["category_name"], item["type"], cat_activity_map)
+        item["activity_code"] = act_code
+        item["activity_label"] = act_label
 
     # 3. Filter by period & search query
     filtered_items = []
@@ -190,12 +221,34 @@ async def journal_view(
         ]
         filter_title += f" — Recherche '{search}'"
 
-    # Compute period totals
+    # Compute period totals and breakdowns (on all transactions matching the period/search)
     total_entrees = sum(t["amount"] for t in filtered_items if t["type"] == "entree")
     total_sorties = sum(t["amount"] for t in filtered_items if t["type"] == "sortie")
-    
-    # Current cash balance is the latest running balance of filtered items, or latest of all
-    current_solde = filtered_items[-1]["running_balance"] if filtered_items else (all_raw[-1]["running_balance"] if all_raw else 0.0)
+
+    total_services = sum(t["amount"] for t in filtered_items if t["type"] == "entree" and t["activity_code"] == "service")
+    count_services = sum(1 for t in filtered_items if t["type"] == "entree" and t["activity_code"] == "service")
+
+    total_ventes = sum(t["amount"] for t in filtered_items if t["type"] == "entree" and t["activity_code"] == "vente")
+    count_ventes = sum(1 for t in filtered_items if t["type"] == "entree" and t["activity_code"] == "vente")
+
+    pct_services = round((total_services / total_entrees * 100), 1) if total_entrees > 0 else 0.0
+    pct_ventes = round((total_ventes / total_entrees * 100), 1) if total_entrees > 0 else 0.0
+
+    # Activity filter (for table rows)
+    if activity in ["service", "vente", "depense"]:
+        display_items = [t for t in filtered_items if t["activity_code"] == activity]
+        if activity == "service":
+            filter_title += " — Prestations de Services"
+        elif activity == "vente":
+            filter_title += " — Ventes de Produits"
+        elif activity == "depense":
+            filter_title += " — Dépenses (Sorties)"
+    else:
+        activity = "all"
+        display_items = filtered_items
+
+    # Current cash balance is the latest running balance of all transactions up to current view, or latest of all
+    current_solde = all_raw[-1]["running_balance"] if all_raw else 0.0
 
     conn.close()
 
@@ -206,11 +259,18 @@ async def journal_view(
             "active_page": "journal",
             "current_user": user,
             "categories": categories,
-            "transactions": filtered_items,
+            "transactions": display_items,
             "total_entrees": total_entrees,
             "total_sorties": total_sorties,
             "current_solde": current_solde,
+            "total_services": total_services,
+            "count_services": count_services,
+            "pct_services": pct_services,
+            "total_ventes": total_ventes,
+            "count_ventes": count_ventes,
+            "pct_ventes": pct_ventes,
             "current_period": period,
+            "current_activity": activity,
             "current_filter_title": filter_title,
             "today_str": today_str,
             "date_start": date_start,
@@ -470,6 +530,24 @@ async def reports_view(
     c.execute(query_entrees_cat, params)
     entrees_by_cat = [dict(r) for r in c.fetchall()]
 
+    # Fetch category activity types
+    c.execute("SELECT name, activity_type FROM categories")
+    cat_activity_map = {row["name"]: row["activity_type"] for row in c.fetchall()}
+
+    total_services = 0.0
+    total_ventes = 0.0
+    for row in entrees_by_cat:
+        act_code, act_label = classify_activity(row["category_name"], "entree", cat_activity_map)
+        row["activity_code"] = act_code
+        row["activity_label"] = act_label
+        if act_code == "service":
+            total_services += row["total"]
+        else:
+            total_ventes += row["total"]
+
+    pct_services = round((total_services / total_entrees * 100), 1) if total_entrees > 0 else 0.0
+    pct_ventes = round((total_ventes / total_entrees * 100), 1) if total_entrees > 0 else 0.0
+
     # 3. Sorties by category
     query_sorties_cat = f"""
         SELECT category_name, COUNT(*) as count, SUM(amount) as total
@@ -553,6 +631,10 @@ async def reports_view(
             "total_entrees": total_entrees,
             "total_sorties": total_sorties,
             "net_balance": net_balance,
+            "total_services": total_services,
+            "total_ventes": total_ventes,
+            "pct_services": pct_services,
+            "pct_ventes": pct_ventes,
             "entrees_by_cat": entrees_by_cat,
             "sorties_by_cat": sorties_by_cat,
             "chart_labels": chart_labels,
@@ -576,7 +658,7 @@ async def categories_view(request: Request):
 
     conn = database.get_connection()
     c = conn.cursor()
-    c.execute("SELECT * FROM categories ORDER BY name ASC")
+    c.execute("SELECT * FROM categories ORDER BY activity_type ASC, name ASC")
     categories = [dict(r) for r in c.fetchall()]
     conn.close()
 
@@ -594,7 +676,8 @@ async def categories_view(request: Request):
 async def create_category(
     request: Request,
     name: str = Form(...),
-    operation_type: str = Form("both")
+    operation_type: str = Form("both"),
+    activity_type: Optional[str] = Form(None)
 ):
     user = get_current_user(request)
     if user["role"] not in ["dg", "dg_adjoint"]:
@@ -604,10 +687,20 @@ async def create_category(
     if not clean_name:
         return RedirectResponse(url="/categories?message=Nom+invalide&message_type=error", status_code=303)
 
+    if not activity_type:
+        if operation_type == "sortie":
+            activity_type = "depense"
+        elif clean_name.lower().startswith("vente ") and "wifi" not in clean_name.lower():
+            activity_type = "vente"
+        elif any(k in clean_name.lower() for k in ["livret", "livre", "article"]) and not clean_name.lower().startswith("reliure"):
+            activity_type = "vente"
+        else:
+            activity_type = "service"
+
     conn = database.get_connection()
     c = conn.cursor()
     try:
-        c.execute("INSERT INTO categories (name, operation_type) VALUES (?, ?)", (clean_name, operation_type))
+        c.execute("INSERT INTO categories (name, operation_type, activity_type) VALUES (?, ?, ?)", (clean_name, operation_type, activity_type))
         conn.commit()
     except sqlite3.IntegrityError:
         conn.close()
@@ -635,6 +728,7 @@ async def export_excel(
     request: Request,
     mode: Optional[str] = "journal",
     period: Optional[str] = "all",
+    activity: Optional[str] = "all",
     date_start: Optional[str] = None,
     date_end: Optional[str] = None,
     search: Optional[str] = None,
@@ -705,6 +799,15 @@ async def export_excel(
                 t for t in target_items
                 if s in t["category_name"].lower() or s in (t.get("description") or "").lower()
             ]
+
+    if activity in ["service", "vente", "depense"]:
+        target_items = [t for t in target_items if classify_activity(t["category_name"], t["type"])[0] == activity]
+        if activity == "service":
+            subtitle += " — Prestations de Services"
+        elif activity == "vente":
+            subtitle += " — Ventes de Produits"
+        elif activity == "depense":
+            subtitle += " — Dépenses (Sorties)"
 
     excel_bytes = generate_journal_excel(target_items, title="Cahier Journal de Caisse", subtitle=subtitle)
 

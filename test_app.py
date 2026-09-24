@@ -234,6 +234,57 @@ def test_duplicate_check_and_merge_flow():
     conn.commit()
     conn.close()
 
+def test_services_vs_ventes_breakdown_and_filtering():
+    dg_client = TestClient(app)
+    dg_client.cookies.set("cahier_user", "dg")
+
+    # 1. Access journal with period=all -> should display both services and ventes breakdown
+    resp_all = dg_client.get("/journal?period=all")
+    assert resp_all.status_code == 200
+    assert "Prestations de Services" in resp_all.text
+    assert "Ventes de Produits" in resp_all.text
+    # Check exact amounts: Services = 335 600 FCFA, Ventes = 158 875 FCFA
+    assert "335 600" in resp_all.text or "335600" in resp_all.text
+    assert "158 875" in resp_all.text or "158875" in resp_all.text
+    assert "67.9%" in resp_all.text
+    assert "32.1%" in resp_all.text
+
+    # 2. Filter by activity=service -> only services in table
+    resp_svc = dg_client.get("/journal?period=all&activity=service")
+    assert resp_svc.status_code == 200
+    tbody_svc = resp_svc.text.split('<tbody')[1].split('</tbody>')[0]
+    assert "Photocopie" in tbody_svc
+    assert "Impression" in tbody_svc
+    assert "Achat de papier ram" not in tbody_svc
+    assert "Vente d'articles" not in tbody_svc
+
+    # 3. Filter by activity=vente -> only ventes in table
+    resp_vte = dg_client.get("/journal?period=all&activity=vente")
+    assert resp_vte.status_code == 200
+    tbody_vte = resp_vte.text.split('<tbody')[1].split('</tbody>')[0]
+    assert "Vente d&#39;articles" in tbody_vte or "Vente d'articles" in tbody_vte
+    assert "Photocopie" not in tbody_vte
+    assert "Achat de papier ram" not in tbody_vte
+
+    # 4. Filter by activity=depense -> only sorties
+    resp_dep = dg_client.get("/journal?period=all&activity=depense")
+    assert resp_dep.status_code == 200
+    tbody_dep = resp_dep.text.split('<tbody')[1].split('</tbody>')[0]
+    assert "Achat de papier ram" in tbody_dep
+    assert "Impression" not in tbody_dep
+    assert "Vente d'articles" not in tbody_dep
+
+    # 5. Check reports page also contains Services vs Ventes
+    resp_rep = dg_client.get("/reports?type=monthly&year=2026&month=09")
+    assert resp_rep.status_code == 200
+    assert "Prestations de Services" in resp_rep.text
+    assert "Ventes d'Articles" in resp_rep.text or "Ventes de Produits" in resp_rep.text
+
+    # 6. Check Excel export with activity filter
+    resp_xl = dg_client.get("/export/excel?period=all&activity=service")
+    assert resp_xl.status_code == 200
+    assert len(resp_xl.content) > 1000
+
 if __name__ == "__main__":
     import pytest
     pytest.main(["-v", "test_app.py"])
