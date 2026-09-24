@@ -118,10 +118,12 @@
                         </div>
                     </div>
 
-                    <!-- User Switch / Logout Modal Trigger -->
-                    <a href="/login" class="bg-blue-800/60 hover:bg-blue-700 text-blue-100 hover:text-white px-3 py-1.5 rounded-lg text-xs font-medium border border-blue-600/40 transition flex items-center gap-1.5" title="Changer d'utilisateur">
-                        <i class="fa-solid fa-arrow-right-from-bracket"></i>
-                        <span class="hidden sm:inline">Changer</span>
+                    <!-- Déconnexion Button -->
+                    <a href="/logout" 
+                       class="bg-rose-600/20 hover:bg-rose-600 text-rose-200 hover:text-white px-3 py-1.5 rounded-lg text-xs font-bold border border-rose-500/40 transition flex items-center gap-1.5 shadow-sm" 
+                       title="Se déconnecter de la session">
+                        <i class="fa-solid fa-power-off text-rose-300"></i>
+                        <span class="hidden sm:inline">Déconnexion</span>
                     </a>
                 </div>
 
@@ -141,6 +143,9 @@
                 <i class="fa-solid fa-list-check"></i> Catégories
             </a>
             {% endif %}
+            <a href="/logout" class="text-xs font-bold py-1 px-2 rounded text-rose-300 hover:text-white flex items-center gap-1">
+                <i class="fa-solid fa-power-off"></i> Quitter
+            </a>
         </div>
     </header>
 

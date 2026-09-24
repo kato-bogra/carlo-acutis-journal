@@ -32,9 +32,11 @@ MONTHS_FR = [
     ("10", "Octobre"), ("11", "Novembre"), ("12", "Décembre")
 ]
 
-def get_current_user(request: Request) -> dict:
-    """Extract authenticated user from cookie or return default active session."""
-    username = request.cookies.get("cahier_user") or "dg"  # Default to DG for easy startup
+def get_current_user(request: Request) -> Optional[dict]:
+    """Extract authenticated user from cookie or return None."""
+    username = request.cookies.get("cahier_user")
+    if not username:
+        return None
     conn = database.get_connection()
     c = conn.cursor()
     c.execute("SELECT id, username, full_name, role FROM users WHERE username = ?", (username,))
@@ -42,7 +44,7 @@ def get_current_user(request: Request) -> dict:
     conn.close()
     if row:
         return dict(row)
-    return {"id": 1, "username": "dg", "full_name": "Directeur Général", "role": "dg"}
+    return None
 
 def format_date_display(date_str: str) -> str:
     """Format YYYY-MM-DD into DD/MM/YYYY."""
@@ -53,15 +55,23 @@ def format_date_display(date_str: str) -> str:
         return date_str
 
 @app.get("/", response_class=HTMLResponse)
-async def root_redirect():
+async def root_redirect(request: Request):
+    user = get_current_user(request)
+    if not user:
+        return RedirectResponse(url="/login", status_code=302)
     return RedirectResponse(url="/journal", status_code=302)
 
 @app.get("/login", response_class=HTMLResponse)
-async def login_page(request: Request, error: Optional[str] = None):
+async def login_page(request: Request, error: Optional[str] = None, message: Optional[str] = None):
+    # If user is already logged in, redirect straight to journal
+    user = get_current_user(request)
+    if user:
+        return RedirectResponse(url="/journal", status_code=302)
+
     return templates.TemplateResponse(
         request=request,
         name="login.html",
-        context={"error": error}
+        context={"error": error, "message": message}
     )
 
 @app.post("/login")
@@ -86,7 +96,7 @@ async def login_submit(username: str = Form(...), password: str = Form(...)):
 
 @app.get("/logout")
 async def logout():
-    response = RedirectResponse(url="/login", status_code=303)
+    response = RedirectResponse(url="/login?message=Vous+êtes+déconnecté.+Entrez+votre+mot+de+passe+pour+vous+reconnecter.", status_code=303)
     response.delete_cookie(key="cahier_user")
     return response
 
@@ -101,6 +111,8 @@ async def journal_view(
     message_type: Optional[str] = "success"
 ):
     user = get_current_user(request)
+    if not user:
+        return RedirectResponse(url="/login?error=Veuillez+entrer+votre+mot+de+passe+pour+accéder+au+cahier+journal", status_code=303)
     now = datetime.now()
     today_str = now.strftime("%Y-%m-%d")
 
@@ -289,6 +301,8 @@ async def reports_view(
     date_end: Optional[str] = None
 ):
     user = get_current_user(request)
+    if not user:
+        return RedirectResponse(url="/login?error=Veuillez+entrer+votre+mot+de+passe+pour+accéder+aux+rapports", status_code=303)
     now = datetime.now()
     today_str = now.strftime("%Y-%m-%d")
 
@@ -453,6 +467,8 @@ async def reports_view(
 @app.get("/categories", response_class=HTMLResponse)
 async def categories_view(request: Request):
     user = get_current_user(request)
+    if not user:
+        return RedirectResponse(url="/login?error=Veuillez+entrer+votre+mot+de+passe", status_code=303)
     if user["role"] not in ["dg", "dg_adjoint"]:
         return RedirectResponse(
             url="/journal?message=Accès+refusé:+la+gestion+des+catégories+est+réservée+à+la+Direction+Générale&message_type=error",
@@ -528,6 +544,10 @@ async def export_excel(
     month: Optional[str] = None,
     day: Optional[str] = None
 ):
+    user = get_current_user(request)
+    if not user:
+        return RedirectResponse(url="/login?error=Veuillez+entrer+votre+mot+de+passe", status_code=303)
+
     conn = database.get_connection()
     c = conn.cursor()
 

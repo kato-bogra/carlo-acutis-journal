@@ -9,18 +9,35 @@ import sqlite3
 client = TestClient(app)
 
 def test_homepage_redirect():
+    # Without cookie, root redirects to /login
     response = client.get("/", follow_redirects=False)
     assert response.status_code == 302
-    assert response.headers["location"] == "/journal"
+    assert response.headers["location"] == "/login"
 
 def test_journal_view_dg():
-    # As default DG
-    response = client.get("/journal")
+    # As authenticated DG
+    dg_client = TestClient(app)
+    dg_client.cookies.set("cahier_user", "dg")
+    response = dg_client.get("/journal")
     assert response.status_code == 200
     assert "Boutique Carlo Acutis Foundation" in response.text
     assert "Photocopie" in response.text
     assert "Achat de papier ram" in response.text
-    assert "18 850" in response.text  # Cumulative balance from image!
+    assert "93 950" in response.text  # Real cumulative balance from PDF!
+
+def test_logout_flow():
+    # Authenticated user logs out
+    dg_client = TestClient(app)
+    dg_client.cookies.set("cahier_user", "dg")
+    resp = dg_client.get("/logout", follow_redirects=False)
+    assert resp.status_code == 303
+    assert "/login" in resp.headers["location"]
+
+    # Verify unauthenticated access to journal is blocked
+    unauth = TestClient(app)
+    resp_unauth = unauth.get("/journal", follow_redirects=False)
+    assert resp_unauth.status_code == 303
+    assert "/login" in resp_unauth.headers["location"]
 
 def test_login_flow():
     # 1. Login as Secretaire with 4231

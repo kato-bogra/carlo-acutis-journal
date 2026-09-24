@@ -37,8 +37,16 @@
         </div>
 
         <!-- Login Form -->
-        <div class="p-6 space-y-6">
+        <!-- Login Form -->
+        <div class="p-6 space-y-5">
             
+            {% if message %}
+            <div class="p-3 bg-blue-50 border border-blue-200 text-blue-800 rounded-xl text-xs flex items-center gap-2">
+                <i class="fa-solid fa-circle-info text-blue-600"></i>
+                <span>{{ message }}</span>
+            </div>
+            {% endif %}
+
             {% if error %}
             <div class="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-xs flex items-center gap-2">
                 <i class="fa-solid fa-circle-exclamation text-rose-500"></i>
@@ -48,7 +56,7 @@
 
             <div>
                 <label class="block text-xs font-bold text-slate-700 mb-2 uppercase tracking-wider">
-                    Sélectionnez votre rôle :
+                    1. Choisissez votre profil :
                 </label>
                 
                 <div class="grid grid-cols-1 gap-2.5">
@@ -56,7 +64,7 @@
                     <!-- Secrétaire Card -->
                     <label class="flex items-center justify-between p-3.5 border-2 rounded-2xl cursor-pointer transition hover:border-blue-400 has-[:checked]:border-blue-600 has-[:checked]:bg-blue-50/50">
                         <div class="flex items-center gap-3">
-                            <input type="radio" name="role_select" value="secretaire" checked onchange="selectUser('secretaire', '4231')" class="text-blue-600 focus:ring-blue-500">
+                            <input type="radio" name="role_select" value="secretaire" checked onchange="selectUser('secretaire', 'Secrétaire de Caisse')" class="text-blue-600 focus:ring-blue-500">
                             <div>
                                 <div class="text-sm font-bold text-slate-900 flex items-center gap-1.5">
                                     <i class="fa-solid fa-keyboard text-emerald-600"></i>
@@ -71,13 +79,13 @@
                     <!-- DG Card -->
                     <label class="flex items-center justify-between p-3.5 border-2 rounded-2xl cursor-pointer transition hover:border-amber-400 has-[:checked]:border-amber-600 has-[:checked]:bg-amber-50/50">
                         <div class="flex items-center gap-3">
-                            <input type="radio" name="role_select" value="dg" onchange="selectUser('dg', '12345')" class="text-amber-600 focus:ring-amber-500">
+                            <input type="radio" name="role_select" value="dg" onchange="selectUser('dg', 'Directeur Général (DG)')" class="text-amber-600 focus:ring-amber-500">
                             <div>
                                 <div class="text-sm font-bold text-slate-900 flex items-center gap-1.5">
                                     <i class="fa-solid fa-user-tie text-amber-600"></i>
                                     <span>Directeur Général (DG)</span>
                                 </div>
-                                <div class="text-[11px] text-slate-500">Comptes, corrections d'erreurs & gestion</div>
+                                <div class="text-[11px] text-slate-500">Comptes, corrections & gestion</div>
                             </div>
                         </div>
                         <span class="text-[10px] font-bold bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full">Supervision</span>
@@ -86,7 +94,7 @@
                     <!-- DG Adjoint Card -->
                     <label class="flex items-center justify-between p-3.5 border-2 rounded-2xl cursor-pointer transition hover:border-purple-400 has-[:checked]:border-purple-600 has-[:checked]:bg-purple-50/50">
                         <div class="flex items-center gap-3">
-                            <input type="radio" name="role_select" value="dg_adjoint" onchange="selectUser('dg_adjoint', '23456')" class="text-purple-600 focus:ring-purple-500">
+                            <input type="radio" name="role_select" value="dg_adjoint" onchange="selectUser('dg_adjoint', 'DG Adjoint')" class="text-purple-600 focus:ring-purple-500">
                             <div>
                                 <div class="text-sm font-bold text-slate-900 flex items-center gap-1.5">
                                     <i class="fa-solid fa-user-shield text-purple-600"></i>
@@ -106,20 +114,23 @@
                 <input type="hidden" id="username_field" name="username" value="secretaire">
                 
                 <div>
-                    <div class="flex items-center justify-between mb-1">
-                        <label class="text-xs font-bold text-slate-700">Code PIN confidentiel</label>
-                        <span class="text-[11px] text-slate-400">DG: 12345 | Adjoint: 23456 | Sec: 4231</span>
-                    </div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">
+                        2. Entrez votre mot de passe confidentiel :
+                    </label>
                     <div class="relative">
-                        <input type="password" id="password_field" name="password" required value="4231" 
-                               class="w-full pl-10 pr-4 py-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 font-mono tracking-widest text-center">
-                        <i class="fa-solid fa-key absolute left-3.5 top-3.5 text-slate-400 text-xs"></i>
+                        <input type="password" id="password_field" name="password" required autofocus
+                               placeholder="Tapez votre code..." 
+                               class="w-full pl-10 pr-10 py-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 font-mono tracking-widest text-center">
+                        <i class="fa-solid fa-lock absolute left-3.5 top-3.5 text-slate-400 text-xs"></i>
+                        <button type="button" onclick="togglePasswordVisibility()" class="absolute right-3.5 top-3 text-slate-400 hover:text-slate-600" title="Afficher/Masquer">
+                            <i id="eye_icon" class="fa-regular fa-eye"></i>
+                        </button>
                     </div>
                 </div>
 
                 <button type="submit" class="w-full bg-gradient-to-r from-blue-700 to-indigo-700 hover:from-blue-800 hover:to-indigo-800 text-white font-bold text-sm py-3 rounded-xl shadow-lg shadow-blue-700/20 transition flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-arrow-right-to-bracket"></i>
-                    <span>Ouvrir le Cahier Journal</span>
+                    <i class="fa-solid fa-right-to-bracket"></i>
+                    <span>Se connecter</span>
                 </button>
             </form>
 
@@ -132,9 +143,25 @@
     </div>
 
     <script>
-        function selectUser(username, defaultPin) {
+        function selectUser(username, roleName) {
             document.getElementById('username_field').value = username;
-            document.getElementById('password_field').value = defaultPin;
+            const pwd = document.getElementById('password_field');
+            pwd.value = '';
+            pwd.focus();
+        }
+
+        function togglePasswordVisibility() {
+            const pwd = document.getElementById('password_field');
+            const eye = document.getElementById('eye_icon');
+            if (pwd.type === 'password') {
+                pwd.type = 'text';
+                eye.classList.remove('fa-eye');
+                eye.classList.add('fa-eye-slash');
+            } else {
+                pwd.type = 'password';
+                eye.classList.remove('fa-eye-slash');
+                eye.classList.add('fa-eye');
+            }
         }
     </script>
 </body>
