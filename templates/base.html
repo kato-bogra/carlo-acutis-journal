@@ -4,6 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Boutique Carlo Acutis Foundation{% endblock %}</title>
+    <!-- PWA & Mobile App Settings for Android -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#1e3a8a">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Boutique Acutis">
+    <link rel="apple-touch-icon" href="/static/icons/icon-192.png">
+    <link rel="icon" type="image/png" href="/static/icons/icon-192.png">
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -191,6 +200,50 @@
             </div>
         </div>
     </footer>
+
+    <!-- PWA Install Banner for Mobile -->
+    <div id="pwaInstallBanner" class="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-6 sm:w-96 bg-gradient-to-r from-blue-950 to-indigo-950 text-white p-4 rounded-2xl shadow-2xl border border-amber-400/40 z-50 hidden no-print flex items-center justify-between gap-3">
+        <div class="flex items-center gap-3">
+            <img src="/static/icons/icon-192.png" alt="App Icon" class="w-11 h-11 rounded-xl object-cover border border-amber-400 shadow">
+            <div>
+                <div class="text-xs font-bold text-amber-300">Installer l'Application</div>
+                <div class="text-[11px] text-blue-200">Sur l'écran d'accueil de votre téléphone</div>
+            </div>
+        </div>
+        <div class="flex items-center gap-2">
+            <button id="pwaInstallBtn" class="bg-amber-400 hover:bg-amber-500 text-blue-950 text-xs font-black px-3.5 py-2 rounded-xl shadow transition">
+                Installer
+            </button>
+            <button onclick="document.getElementById('pwaInstallBanner').remove()" class="text-white/60 hover:text-white text-sm p-1">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- PWA Service Worker & Install Script -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/service-worker.js').catch(() => {});
+            });
+        }
+
+        let deferredPrompt;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            const banner = document.getElementById('pwaInstallBanner');
+            if (banner) banner.classList.remove('hidden');
+        });
+
+        document.getElementById('pwaInstallBtn')?.addEventListener('click', async () => {
+            if (!deferredPrompt) return;
+            deferredPrompt.prompt();
+            const { outcome } = await deferredPrompt.userChoice;
+            deferredPrompt = null;
+            document.getElementById('pwaInstallBanner')?.remove();
+        });
+    </script>
 
     {% block scripts %}{% endblock %}
 </body>

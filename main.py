@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Optional
 
 from fastapi import FastAPI, Request, Form, Response, HTTPException, status
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
@@ -23,6 +23,14 @@ app = FastAPI(title="Boutique Carlo Acutis Foundation - Cahier Journal")
 # Static files & templates
 app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
+
+@app.get("/manifest.json")
+async def get_manifest():
+    return FileResponse(BASE_DIR / "static" / "manifest.json", media_type="application/manifest+json")
+
+@app.get("/service-worker.js")
+async def get_service_worker():
+    return FileResponse(BASE_DIR / "static" / "service-worker.js", media_type="application/javascript")
 
 # Month names in French
 MONTHS_FR = [

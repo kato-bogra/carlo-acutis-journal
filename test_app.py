@@ -137,6 +137,19 @@ def test_excel_export():
     assert resp.headers["content-type"] == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     assert len(resp.content) > 1000
 
+def test_pwa_assets():
+    # Test manifest
+    resp_m = client.get("/manifest.json")
+    assert resp_m.status_code == 200
+    data = resp_m.json()
+    assert data["short_name"] == "Boutique Acutis"
+    assert data["display"] == "standalone"
+
+    # Test service worker
+    resp_sw = client.get("/service-worker.js")
+    assert resp_sw.status_code == 200
+    assert "addEventListener" in resp_sw.text
+
 if __name__ == "__main__":
     import pytest
     pytest.main(["-v", "test_app.py"])
