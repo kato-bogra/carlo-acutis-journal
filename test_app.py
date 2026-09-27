@@ -40,8 +40,8 @@ def test_logout_flow():
     assert "/login" in resp_unauth.headers["location"]
 
 def test_login_flow():
-    # 1. Login as Secretaire with 4231
-    resp_sec = client.post("/login", data={"username": "secretaire", "password": "4231"}, follow_redirects=False)
+    # 1. Login as Secretaire with 54321
+    resp_sec = client.post("/login", data={"username": "secretaire", "password": "54321"}, follow_redirects=False)
     assert resp_sec.status_code == 303
     assert "cahier_user=secretaire" in resp_sec.headers["set-cookie"]
 

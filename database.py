@@ -139,9 +139,12 @@ def init_db():
         users = [
             ("dg", "Directeur Général", "dg", hash_pw("12345"), "12345"),
             ("dg_adjoint", "DG Adjoint", "dg_adjoint", hash_pw("23456"), "23456"),
-            ("secretaire", "Secrétaire de Caisse", "secretaire", hash_pw("4231"), "4231"),
+            ("secretaire", "Secrétaire de Caisse", "secretaire", hash_pw("54321"), "54321"),
         ]
         c.executemany("INSERT INTO users (username, full_name, role, password_hash, pin) VALUES (?, ?, ?, ?, ?)", users)
+
+    # Ensure secretaire password is set to 54321
+    c.execute("UPDATE users SET pin = '54321', password_hash = ? WHERE username = 'secretaire'", (hash_pw("54321"),))
 
     # Seed categories if empty
     c.execute("SELECT COUNT(*) FROM categories")
