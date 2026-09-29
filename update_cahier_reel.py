@@ -174,6 +174,24 @@ REAL_TRANSACTIONS = [
     ("2026-09-24", "Vente d'articles", "entree", 750, "", "Secrétaire de Caisse"),
     ("2026-09-24", "Saisie", "entree", 300, "", "Secrétaire de Caisse"),
     ("2026-09-24", "Scanner", "entree", 1000, "", "Secrétaire de Caisse"),
+    # 25/09/2026 (Récupérées des logs Render)
+    ("2026-09-25", "Photocopie", "entree", 10650, "", "Secrétaire de Caisse"),
+    ("2026-09-25", "Impression", "entree", 6600, "", "Secrétaire de Caisse"),
+    ("2026-09-25", "Vente d'articles", "entree", 1100, "", "Secrétaire de Caisse"),
+    ("2026-09-25", "Saisie", "entree", 300, "", "Secrétaire de Caisse"),
+    ("2026-09-25", "Photo passeport", "entree", 2000, "", "Secrétaire de Caisse"),
+    # 26/09/2026 (Récupérées des logs Render)
+    ("2026-09-26", "Photocopie", "entree", 4325, "", "Secrétaire de Caisse"),
+    ("2026-09-26", "Impression", "entree", 2275, "", "Secrétaire de Caisse"),
+    ("2026-09-26", "Vente d'articles", "entree", 500, "", "Secrétaire de Caisse"),
+    ("2026-09-26", "Entretien des machines", "sortie", 3000, "", "Secrétaire de Caisse"),
+    # 28/09/2026 (Récupérées des logs Render)
+    ("2026-09-28", "Photocopie", "entree", 4225, "", "Secrétaire de Caisse"),
+    ("2026-09-28", "Impression", "entree", 1675, "", "Secrétaire de Caisse"),
+    ("2026-09-28", "Vente d'articles", "entree", 1350, "", "Secrétaire de Caisse"),
+    ("2026-09-28", "Scanner", "entree", 800, "", "Secrétaire de Caisse"),
+    ("2026-09-28", "Photo passeport", "entree", 2000, "", "Secrétaire de Caisse"),
+    ("2026-09-28", "Vente de livret de bénédiction", "entree", 2500, "", "Secrétaire de Caisse"),
 ]
 
 def main():
