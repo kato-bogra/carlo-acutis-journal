@@ -130,6 +130,8 @@ def classify_activity(category_name: str, op_type: str, category_activity_map: O
             return ("depense", "Dépense")
 
     cat_l = (category_name or "").lower().strip()
+    if "reliure" in cat_l and ("bénédiction" in cat_l or "benediction" in cat_l or "livre" in cat_l or "livret" in cat_l):
+        return ("depense", "Dépense")
     if cat_l.startswith("vente ") and "wifi" not in cat_l:
         return ("vente", "Vente")
     if any(k in cat_l for k in ["livret", "livre", "article"]) and not cat_l.startswith("reliure"):

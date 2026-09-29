@@ -285,6 +285,29 @@ def test_services_vs_ventes_breakdown_and_filtering():
     assert resp_xl.status_code == 200
     assert len(resp_xl.content) > 1000
 
+def test_reliure_categorization():
+    import database
+    conn = database.get_connection()
+    c = conn.cursor()
+    c.execute("SELECT name, operation_type, activity_type FROM categories WHERE name = 'Reliure'")
+    r_simple = c.fetchone()
+    assert r_simple["operation_type"] == "entree"
+    assert r_simple["activity_type"] == "service"
+
+    c.execute("SELECT name, operation_type, activity_type FROM categories WHERE name LIKE 'Reliure de livr%b%n%diction%'")
+    rows_benediction = c.fetchall()
+    assert len(rows_benediction) > 0
+    for r in rows_benediction:
+        assert r["operation_type"] == "sortie"
+        assert r["activity_type"] == "depense"
+    conn.close()
+
+    # Test classify_activity helper
+    from main import classify_activity
+    assert classify_activity("Reliure", "entree") == ("service", "Prestation")
+    assert classify_activity("Reliure de livre de bénédiction", "sortie") == ("depense", "Dépense")
+    assert classify_activity("Reliure de livrets de bénédiction", "sortie") == ("depense", "Dépense")
+
 if __name__ == "__main__":
     import pytest
     pytest.main(["-v", "test_app.py"])

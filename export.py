@@ -143,6 +143,8 @@ def generate_journal_excel(transactions: list, title: str = "Cahier Journal", su
         if op_type == 'sortie':
             return ('depense', 'Dépense', nature_depense_fmt)
         c_l = (cat_name or '').lower().strip()
+        if "reliure" in c_l and ("bénédiction" in c_l or "benediction" in c_l or "livre" in c_l or "livret" in c_l):
+            return ('depense', 'Dépense', nature_depense_fmt)
         if c_l.startswith('vente ') and 'wifi' not in c_l:
             return ('vente', 'Vente', nature_vente_fmt)
         if any(k in c_l for k in ['livret', 'livre', 'article']) and not c_l.startswith('reliure'):

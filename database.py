@@ -30,7 +30,8 @@ INITIAL_CATEGORIES = [
     ("Photo passeport", "entree", "service"),
     ("Photocopie", "entree", "service"),
     ("Reliure", "entree", "service"),
-    ("Reliure de livrets de bénédiction", "entree", "service"),
+    ("Reliure de livre de bénédiction", "sortie", "depense"),
+    ("Reliure de livrets de bénédiction", "sortie", "depense"),
     ("Saisie", "entree", "service"),
     ("Scanner", "entree", "service"),
     ("Vente d'articles", "entree", "vente"),
@@ -100,11 +101,27 @@ def init_db():
           AND name NOT LIKE 'Reliure%'
     """)
     c.execute("""
+        UPDATE categories 
+        SET operation_type = 'entree', activity_type = 'service' 
+        WHERE name = 'Reliure'
+    """)
+    c.execute("""
         UPDATE categories SET activity_type = 'service' 
         WHERE operation_type != 'sortie' 
-          AND (activity_type IS NULL OR activity_type = '' OR activity_type != 'vente' OR name LIKE 'Reliure%')
+          AND (activity_type IS NULL OR activity_type = '' OR activity_type != 'vente')
+          AND name NOT LIKE 'Reliure de livr%'
+    """)
+    c.execute("""
+        UPDATE categories 
+        SET operation_type = 'sortie', activity_type = 'depense' 
+        WHERE name LIKE 'Reliure de livr%'
     """)
     c.execute("UPDATE categories SET activity_type = 'depense' WHERE operation_type = 'sortie'")
+
+    # Ensure 'Reliure de livre de bénédiction' exists as a configured category
+    c.execute("SELECT id FROM categories WHERE name = 'Reliure de livre de bénédiction'")
+    if not c.fetchone():
+        c.execute("INSERT INTO categories (name, operation_type, activity_type) VALUES ('Reliure de livre de bénédiction', 'sortie', 'depense')")
 
     # Transactions table
     c.execute("""
