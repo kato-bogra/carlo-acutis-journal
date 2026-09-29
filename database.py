@@ -6,12 +6,32 @@ SQLite with robust schemas, seeded categories, and historical data.
 import sqlite3
 import hashlib
 import os
+import shutil
 from datetime import datetime
 from pathlib import Path
 
-DB_PATH = Path(os.environ.get("DB_PATH", Path(__file__).parent / "journal.db"))
-# Ensure parent directory exists if custom path provided
-DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+LOCAL_SOURCE_DB = Path(__file__).parent / "journal.db"
+
+def resolve_db_path() -> Path:
+    # 1. Custom DB_PATH from environment variable
+    if "DB_PATH" in os.environ and os.environ["DB_PATH"].strip():
+        p = Path(os.environ["DB_PATH"].strip())
+        try:
+            p.parent.mkdir(parents=True, exist_ok=True)
+        except Exception:
+            pass
+        return p
+
+    # 2. Render persistent disk auto-detection (/data)
+    render_data = Path("/data")
+    if render_data.exists() and os.access(render_data, os.W_OK):
+        return render_data / "journal.db"
+
+    # 3. Default local repository database
+    return LOCAL_SOURCE_DB
+
+DB_PATH = resolve_db_path()
+
 
 INITIAL_CATEGORIES = [
     ("Abonnement Wifi", "sortie", "depense"),
@@ -57,6 +77,18 @@ def get_connection():
     return conn
 
 def init_db():
+    try:
+        DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+    except Exception:
+        pass
+
+    # If DB_PATH is a separate storage directory (e.g. Render /data) and the file doesn't exist yet, copy initial DB
+    try:
+        if DB_PATH.resolve() != LOCAL_SOURCE_DB.resolve() and not DB_PATH.exists() and LOCAL_SOURCE_DB.exists():
+            shutil.copy2(LOCAL_SOURCE_DB, DB_PATH)
+    except Exception as e:
+        print(f"Notice: Initial DB copy skipped: {e}")
+
     conn = get_connection()
     c = conn.cursor()
 
@@ -182,5 +214,83 @@ def init_db():
     conn.commit()
     conn.close()
 
+def get_db_stats():
+    """Retrieve runtime database metrics and storage information."""
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("SELECT COUNT(*) FROM transactions")
+    tx_count = c.fetchone()[0]
+    c.execute("SELECT COUNT(*) FROM categories")
+    cat_count = c.fetchone()[0]
+    c.execute("SELECT COUNT(*) FROM users")
+    user_count = c.fetchone()[0]
+    conn.close()
+
+    file_size_kb = 0
+    last_modified = "N/A"
+    if DB_PATH.exists():
+        file_size_kb = round(DB_PATH.stat().st_size / 1024, 2)
+        last_modified = datetime.fromtimestamp(DB_PATH.stat().st_mtime).strftime("%d/%m/%Y %H:%M:%S")
+
+    is_persistent = "/data" in str(DB_PATH) or "DB_PATH" in os.environ
+    return {
+        "path": str(DB_PATH),
+        "is_persistent": is_persistent,
+        "tx_count": tx_count,
+        "cat_count": cat_count,
+        "user_count": user_count,
+        "size_kb": file_size_kb,
+        "last_modified": last_modified,
+    }
+
+def export_data_json():
+    """Export all categories and transactions into a clean dictionary."""
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("SELECT * FROM categories ORDER BY id ASC")
+    categories = [dict(r) for r in c.fetchall()]
+    c.execute("SELECT * FROM transactions ORDER BY date ASC, id ASC")
+    transactions = [dict(r) for r in c.fetchall()]
+    conn.close()
+    return {
+        "exported_at": datetime.now().isoformat(),
+        "total_categories": len(categories),
+        "total_transactions": len(transactions),
+        "categories": categories,
+        "transactions": transactions,
+    }
+
+def restore_from_json(data: dict) -> int:
+    """Safely restore categories and transactions from a JSON backup without duplicates."""
+    conn = get_connection()
+    c = conn.cursor()
+    
+    # 1. Categories
+    for cat in data.get("categories", []):
+        c.execute("""
+            INSERT OR IGNORE INTO categories (name, operation_type, activity_type, is_active)
+            VALUES (?, ?, ?, ?)
+        """, (cat.get("name"), cat.get("operation_type", "both"), cat.get("activity_type", "service"), cat.get("is_active", 1)))
+
+    # 2. Transactions
+    imported_count = 0
+    for tx in data.get("transactions", []):
+        c.execute("""
+            SELECT id FROM transactions 
+            WHERE date = ? AND category_name = ? AND type = ? AND amount = ? 
+              AND ((description IS NULL AND ? IS NULL) OR description = ?)
+        """, (tx.get("date"), tx.get("category_name"), tx.get("type"), tx.get("amount"), tx.get("description"), tx.get("description")))
+        if not c.fetchone():
+            c.execute("""
+                INSERT INTO transactions (date, category_name, type, amount, description, created_by_user)
+                VALUES (?, ?, ?, ?, ?, ?)
+            """, (tx.get("date"), tx.get("category_name"), tx.get("type"), tx.get("amount"), tx.get("description"), tx.get("created_by_user", "restauration")))
+            imported_count += 1
+            
+    conn.commit()
+    conn.close()
+    return imported_count
+
 # Initialize DB on module import
 init_db()
+

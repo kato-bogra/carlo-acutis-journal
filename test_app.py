@@ -308,6 +308,68 @@ def test_reliure_categorization():
     assert classify_activity("Reliure de livre de bénédiction", "sortie") == ("depense", "Dépense")
     assert classify_activity("Reliure de livrets de bénédiction", "sortie") == ("depense", "Dépense")
 
+def test_backup_and_restore_flow():
+    # 1. Secretaire should be blocked from /backup
+    sec_client = TestClient(app)
+    sec_client.cookies.set("cahier_user", "secretaire")
+    resp_sec = sec_client.get("/backup", follow_redirects=False)
+    assert resp_sec.status_code == 303
+    assert "journal" in resp_sec.headers["location"]
+
+    # 2. DG can view /backup
+    dg_client = TestClient(app)
+    dg_client.cookies.set("cahier_user", "dg")
+    resp_dg = dg_client.get("/backup")
+    assert resp_dg.status_code == 200
+    assert "Sauvegardes" in resp_dg.text
+    assert "journal.db" in resp_dg.text
+
+    # 3. DG can download .db
+    resp_db = dg_client.get("/backup/download-db")
+    assert resp_db.status_code == 200
+    assert resp_db.content.startswith(b"SQLite format 3\x00")
+
+    # 4. DG can download .json
+    resp_json = dg_client.get("/backup/download-json")
+    assert resp_json.status_code == 200
+    json_data = resp_json.json()
+    assert "transactions" in json_data
+    assert "categories" in json_data
+    assert len(json_data["transactions"]) >= 145
+
+    # 5. DG can restore JSON with new non-duplicate transaction
+    import json
+    new_sample = {
+        "categories": [],
+        "transactions": [
+            {
+                "date": "2026-09-29",
+                "category_name": "Scanner",
+                "type": "entree",
+                "amount": 1500,
+                "description": "Test import sauvegarde",
+                "created_by_user": "restauration"
+            }
+        ]
+    }
+    file_bytes = json.dumps(new_sample).encode("utf-8")
+    resp_restore = dg_client.post(
+        "/backup/restore",
+        files={"backup_file": ("test_backup.json", file_bytes, "application/json")},
+        follow_redirects=True
+    )
+    assert resp_restore.status_code == 200
+    assert "Restauration" in resp_restore.text
+
+    # Clean up test transaction
+    import database
+    conn = database.get_connection()
+    c = conn.cursor()
+    c.execute("DELETE FROM transactions WHERE description = 'Test import sauvegarde'")
+    conn.commit()
+    conn.close()
+
 if __name__ == "__main__":
     import pytest
     pytest.main(["-v", "test_app.py"])
+

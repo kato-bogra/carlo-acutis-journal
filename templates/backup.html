@@ -1,0 +1,223 @@
+{% extends "base.html" %}
+
+{% block title %}Sauvegardes & Sécurité des Données — Boutique Carlo Acutis{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- Header Banner -->
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 no-print">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-5">
+            <div>
+                <div class="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-800 text-xs font-bold mb-1">
+                    <i class="fa-solid fa-shield-halved"></i> Espace Sécurité & Direction
+                </div>
+                <h2 class="text-2xl font-black text-slate-900 tracking-tight">Sauvegardes & Persistance des Données</h2>
+                <p class="text-xs text-slate-500 mt-0.5">Téléchargez vos sauvegardes, restaurez votre base et gérez la persistance sur le serveur Render.</p>
+            </div>
+
+            <!-- Storage Health Badge -->
+            <div>
+                {% if stats.is_persistent %}
+                <div class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-800 shadow-sm text-xs font-bold">
+                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span>Disque Persistant Render Actif</span>
+                </div>
+                {% else %}
+                <div class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-amber-50 border border-amber-300 text-amber-800 shadow-sm text-xs font-bold">
+                    <span class="w-2.5 h-2.5 rounded-full bg-amber-500 animate-ping"></span>
+                    <span>Mode Standard / Éphémère</span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Metrics Grid -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-5">
+            <div class="bg-slate-50 border border-slate-200/80 rounded-xl p-4">
+                <div class="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1 flex items-center gap-1.5">
+                    <i class="fa-solid fa-receipt text-blue-600"></i> Transactions
+                </div>
+                <div class="text-2xl font-black text-slate-900">{{ stats.tx_count }}</div>
+                <div class="text-[11px] text-slate-500 mt-0.5">Écritures enregistrées</div>
+            </div>
+
+            <div class="bg-slate-50 border border-slate-200/80 rounded-xl p-4">
+                <div class="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1 flex items-center gap-1.5">
+                    <i class="fa-solid fa-list-check text-emerald-600"></i> Catégories
+                </div>
+                <div class="text-2xl font-black text-slate-900">{{ stats.cat_count }}</div>
+                <div class="text-[11px] text-slate-500 mt-0.5">Services & Ventes</div>
+            </div>
+
+            <div class="bg-slate-50 border border-slate-200/80 rounded-xl p-4">
+                <div class="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1 flex items-center gap-1.5">
+                    <i class="fa-solid fa-hard-drive text-indigo-600"></i> Taille Base
+                </div>
+                <div class="text-2xl font-black text-slate-900">{{ stats.size_kb }} <span class="text-sm font-normal text-slate-500">Ko</span></div>
+                <div class="text-[11px] text-slate-500 mt-0.5">Fichier journal.db</div>
+            </div>
+
+            <div class="bg-slate-50 border border-slate-200/80 rounded-xl p-4">
+                <div class="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1 flex items-center gap-1.5">
+                    <i class="fa-solid fa-clock-rotate-left text-amber-600"></i> Dernière Modif
+                </div>
+                <div class="text-xs font-black text-slate-900 truncate" title="{{ stats.last_modified }}">{{ stats.last_modified }}</div>
+                <div class="text-[11px] text-slate-500 mt-0.5 truncate">{{ stats.path }}</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Actions Section: 2 Columns -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+        <!-- Column 1: Sauvegarde Immédiate (Télécharger) -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 flex flex-col justify-between">
+            <div>
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="w-10 h-10 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center text-lg font-bold">
+                        <i class="fa-solid fa-cloud-arrow-down"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-black text-slate-900">Télécharger une Sauvegarde</h3>
+                        <p class="text-xs text-slate-500">Conservez une copie intégrale de vos comptes sur votre ordinateur ou téléphone.</p>
+                    </div>
+                </div>
+
+                <div class="space-y-3 my-5">
+                    <!-- Option A: SQLite Raw DB -->
+                    <div class="p-3.5 rounded-xl border border-blue-200 bg-blue-50/50 flex items-center justify-between gap-3">
+                        <div class="flex items-center gap-3">
+                            <div class="text-blue-600 text-xl"><i class="fa-solid fa-database"></i></div>
+                            <div>
+                                <div class="text-sm font-bold text-blue-950">Fichier de Base de Données (.db)</div>
+                                <div class="text-xs text-blue-700">Copie conforme SQLite utilisable pour restauration instantanée.</div>
+                            </div>
+                        </div>
+                        <a href="/backup/download-db" class="px-3.5 py-2 rounded-lg text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white shadow transition flex items-center gap-1.5">
+                            <i class="fa-solid fa-download"></i> Télécharger
+                        </a>
+                    </div>
+
+                    <!-- Option B: JSON Archive -->
+                    <div class="p-3.5 rounded-xl border border-emerald-200 bg-emerald-50/50 flex items-center justify-between gap-3">
+                        <div class="flex items-center gap-3">
+                            <div class="text-emerald-600 text-xl"><i class="fa-solid fa-file-code"></i></div>
+                            <div>
+                                <div class="text-sm font-bold text-emerald-950">Sauvegarde Format JSON (.json)</div>
+                                <div class="text-xs text-emerald-700">Format universel lisible permettant de restaurer sans doublons.</div>
+                            </div>
+                        </div>
+                        <a href="/backup/download-json" class="px-3.5 py-2 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow transition flex items-center gap-1.5">
+                            <i class="fa-solid fa-download"></i> Télécharger
+                        </a>
+                    </div>
+
+                    <!-- Option C: Excel Ledger -->
+                    <div class="p-3.5 rounded-xl border border-amber-200 bg-amber-50/50 flex items-center justify-between gap-3">
+                        <div class="flex items-center gap-3">
+                            <div class="text-amber-600 text-xl"><i class="fa-solid fa-file-excel"></i></div>
+                            <div>
+                                <div class="text-sm font-bold text-amber-950">Registre Complet Excel (.xlsx)</div>
+                                <div class="text-xs text-amber-700">Tableur avec totaux, ventilation Prestations / Ventes et soldes.</div>
+                            </div>
+                        </div>
+                        <a href="/export/excel?period=all" class="px-3.5 py-2 rounded-lg text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white shadow transition flex items-center gap-1.5">
+                            <i class="fa-solid fa-download"></i> Télécharger
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-4 pt-4 border-t border-slate-100 text-xs text-slate-500 flex items-center gap-2">
+                <i class="fa-solid fa-circle-info text-blue-500"></i>
+                <span>Conseil : Téléchargez une sauvegarde chaque vendredi pour votre archivage local.</span>
+            </div>
+        </div>
+
+        <!-- Column 2: Restaurer une Sauvegarde -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 flex flex-col justify-between">
+            <div>
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="w-10 h-10 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center text-lg font-bold">
+                        <i class="fa-solid fa-cloud-arrow-up"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-black text-slate-900">Restaurer des Données</h3>
+                        <p class="text-xs text-slate-500">Importez un fichier de sauvegarde (.json ou .db) en cas de besoin.</p>
+                    </div>
+                </div>
+
+                <form action="/backup/restore" method="POST" enctype="multipart/form-data" class="space-y-4 my-5" onsubmit="return confirm('Confirmez-vous l\'importation de ce fichier de sauvegarde dans le cahier journal ?');">
+                    <div class="border-2 border-dashed border-slate-300 rounded-xl p-6 text-center hover:border-blue-400 transition bg-slate-50/50">
+                        <i class="fa-solid fa-file-arrow-up text-3xl text-slate-400 mb-2"></i>
+                        <p class="text-xs text-slate-600 font-medium mb-3">Sélectionnez votre fichier de sauvegarde (<span class="font-bold text-slate-800">.json</span> ou <span class="font-bold text-slate-800">.db</span>)</p>
+                        <input type="file" name="backup_file" required accept=".json,.db,.sqlite" 
+                               class="text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-blue-600 file:text-white hover:file:bg-blue-700 cursor-pointer">
+                    </div>
+
+                    <div class="bg-blue-50/70 border border-blue-200 rounded-xl p-3 text-xs text-blue-900 space-y-1">
+                        <div class="font-bold flex items-center gap-1.5">
+                            <i class="fa-solid fa-shield-check text-blue-600"></i> Protection anti-doublon intelligente :
+                        </div>
+                        <p class="text-[11px] text-blue-800">Si vous importez un fichier <span class="font-bold">.json</span>, le système vérifie chaque ligne et ajoute uniquement les transactions manquantes sans jamais doubler vos comptes.</p>
+                    </div>
+
+                    <button type="submit" class="w-full py-2.5 px-4 rounded-xl text-xs font-bold bg-purple-700 hover:bg-purple-800 text-white shadow-sm transition flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-rotate-left"></i> Lancer la Restauration
+                    </button>
+                </form>
+            </div>
+
+            <div class="mt-4 pt-4 border-t border-slate-100 text-xs text-slate-500 flex items-center gap-2">
+                <i class="fa-solid fa-lock text-purple-600"></i>
+                <span>Cette opération est strictement réservée à la Direction Générale.</span>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Render Persistent Disk Activation Guide -->
+    <div class="bg-gradient-to-r from-blue-950 via-slate-900 to-indigo-950 rounded-2xl p-6 text-white shadow-md border border-blue-900/60">
+        <div class="flex items-center gap-3 mb-4 border-b border-blue-800/60 pb-4">
+            <div class="w-10 h-10 rounded-xl bg-blue-500/20 text-blue-300 flex items-center justify-center text-lg font-bold border border-blue-400/30">
+                <i class="fa-solid fa-server"></i>
+            </div>
+            <div>
+                <h3 class="text-lg font-black text-white">Comment activer le Disque Persistant sur Render (Solution Définitive)</h3>
+                <p class="text-xs text-blue-200">Pour que le serveur conserve vos écritures pour toujours sans que la secrétaire n'ait rien à réimporter.</p>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+            <div class="bg-white/10 rounded-xl p-4 border border-white/10">
+                <div class="w-6 h-6 rounded-full bg-amber-400 text-slate-950 font-black flex items-center justify-center mb-2">1</div>
+                <div class="font-bold text-amber-300 mb-1">Passer l'instance en Starter</div>
+                <p class="text-slate-300">Sur Render, allez dans votre service web <span class="font-bold text-white">carlo-acutis-journal</span> &gt; <span class="font-bold text-white">Settings</span> &gt; changez le plan en <span class="font-bold text-amber-200">Starter</span> (7$/mois). Cela empêche le serveur de se mettre en veille la nuit.</p>
+            </div>
+
+            <div class="bg-white/10 rounded-xl p-4 border border-white/10">
+                <div class="w-6 h-6 rounded-full bg-amber-400 text-slate-950 font-black flex items-center justify-center mb-2">2</div>
+                <div class="font-bold text-amber-300 mb-1">Ajouter un Disque Persistant</div>
+                <p class="text-slate-300">Dans l'onglet <span class="font-bold text-white">Disks</span> de votre service Render, cliquez sur <span class="font-bold text-white">Add Disk</span> :</p>
+                <ul class="mt-1 space-y-0.5 text-blue-200 font-mono text-[11px]">
+                    <li>• Name : <strong class="text-white">journal-data</strong></li>
+                    <li>• Mount Path : <strong class="text-white">/data</strong></li>
+                    <li>• Size : <strong class="text-white">1 GB</strong></li>
+                </ul>
+            </div>
+
+            <div class="bg-white/10 rounded-xl p-4 border border-white/10">
+                <div class="w-6 h-6 rounded-full bg-amber-400 text-slate-950 font-black flex items-center justify-center mb-2">3</div>
+                <div class="font-bold text-amber-300 mb-1">Variable d'environnement</div>
+                <p class="text-slate-300">Dans l'onglet <span class="font-bold text-white">Environment</span>, vérifiez ou ajoutez :</p>
+                <div class="mt-1 bg-black/40 p-2 rounded text-emerald-300 font-mono text-[11px]">
+                    DB_PATH = /data/journal.db
+                </div>
+                <p class="text-slate-400 text-[10px] mt-1">L'application détecte aussi automatiquement /data.</p>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

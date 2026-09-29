@@ -108,6 +108,10 @@
                         <i class="fa-solid fa-list-check text-emerald-300"></i>
                         <span>Catégories</span>
                     </a>
+                    <a href="/backup" class="px-3.5 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2 {% if active_page == 'backup' %}bg-blue-800/80 text-white shadow-inner border border-blue-500/30{% else %}text-blue-100 hover:bg-blue-800/50 hover:text-white{% endif %}">
+                        <i class="fa-solid fa-database text-amber-300"></i>
+                        <span>Sauvegardes</span>
+                    </a>
                     {% endif %}
                 </nav>
 
@@ -150,6 +154,9 @@
             {% if current_user.role in ['dg', 'dg_adjoint'] %}
             <a href="/categories" class="text-xs font-medium py-1 px-2 rounded text-blue-100 flex items-center gap-1 {% if active_page == 'categories' %}text-emerald-300 font-bold{% endif %}">
                 <i class="fa-solid fa-list-check"></i> Catégories
+            </a>
+            <a href="/backup" class="text-xs font-medium py-1 px-2 rounded text-blue-100 flex items-center gap-1 {% if active_page == 'backup' %}text-amber-300 font-bold{% endif %}">
+                <i class="fa-solid fa-database"></i> Sauvegardes
             </a>
             {% endif %}
             <a href="/logout" class="text-xs font-bold py-1 px-2 rounded text-rose-300 hover:text-white flex items-center gap-1">

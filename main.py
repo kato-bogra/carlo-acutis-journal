@@ -9,9 +9,10 @@ from datetime import datetime, date
 from pathlib import Path
 from typing import Optional
 
+import json
 import urllib.parse
 
-from fastapi import FastAPI, Request, Form, Response, HTTPException, status
+from fastapi import FastAPI, Request, Form, Response, HTTPException, status, UploadFile, File
 from fastapi.responses import HTMLResponse, RedirectResponse, FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -819,6 +820,113 @@ async def export_excel(
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'}
     )
+
+# --- Sauvegardes & Restauration ---
+
+@app.get("/backup", response_class=HTMLResponse)
+async def backup_view(request: Request, message: Optional[str] = None, message_type: Optional[str] = None):
+    user = get_current_user(request)
+    if not user:
+        return RedirectResponse(url="/login?error=Veuillez+entrer+votre+mot+de+passe", status_code=303)
+    if user["role"] not in ["dg", "dg_adjoint"]:
+        return RedirectResponse(
+            url="/journal?message=Accès+refusé:+la+gestion+des+sauvegardes+est+réservée+à+la+Direction+Générale&message_type=error",
+            status_code=303
+        )
+
+    stats = database.get_db_stats()
+    return templates.TemplateResponse(
+        request=request,
+        name="backup.html",
+        context={
+            "active_page": "backup",
+            "current_user": user,
+            "stats": stats,
+            "message": message,
+            "message_type": message_type
+        }
+    )
+
+@app.get("/backup/download-db")
+async def download_db_file(request: Request):
+    user = get_current_user(request)
+    if not user or user["role"] not in ["dg", "dg_adjoint"]:
+        return RedirectResponse(url="/login", status_code=303)
+
+    if not database.DB_PATH.exists():
+        raise HTTPException(status_code=404, detail="Fichier de base de données introuvable.")
+
+    now_str = datetime.now().strftime("%Y%m%d_%H%M")
+    filename = f"cahier_journal_carlo_acutis_{now_str}.db"
+    return FileResponse(
+        str(database.DB_PATH),
+        filename=filename,
+        media_type="application/x-sqlite3"
+    )
+
+@app.get("/backup/download-json")
+async def download_json_backup(request: Request):
+    user = get_current_user(request)
+    if not user or user["role"] not in ["dg", "dg_adjoint"]:
+        return RedirectResponse(url="/login", status_code=303)
+
+    data = database.export_data_json()
+    now_str = datetime.now().strftime("%Y%m%d_%H%M")
+    filename = f"cahier_journal_carlo_acutis_{now_str}.json"
+    return JSONResponse(
+        content=data,
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+    )
+
+@app.post("/backup/restore")
+async def restore_backup(
+    request: Request,
+    backup_file: UploadFile = File(...)
+):
+    user = get_current_user(request)
+    if not user or user["role"] not in ["dg", "dg_adjoint"]:
+        return RedirectResponse(url="/journal?message=Action+refusée&message_type=error", status_code=303)
+
+    filename = backup_file.filename.lower()
+    content = await backup_file.read()
+
+    if filename.endswith(".json"):
+        try:
+            data = json.loads(content.decode("utf-8"))
+            count = database.restore_from_json(data)
+            return RedirectResponse(
+                url=f"/backup?message=Restauration+réussie:+{count}+nouvelles+transactions+importées+sans+doublon&message_type=success",
+                status_code=303
+            )
+        except Exception as e:
+            return RedirectResponse(
+                url=f"/backup?message=Erreur+lors+de+l'importation+JSON:+{urllib.parse.quote(str(e))}&message_type=error",
+                status_code=303
+            )
+    elif filename.endswith(".db") or filename.endswith(".sqlite"):
+        try:
+            if not content.startswith(b"SQLite format 3\x00"):
+                return RedirectResponse(
+                    url="/backup?message=Fichier+invalide:+ceci+n'est+pas+un+fichier+SQLite+valide&message_type=error",
+                    status_code=303
+                )
+            with open(database.DB_PATH, "wb") as f:
+                f.write(content)
+            database.init_db()
+            return RedirectResponse(
+                url="/backup?message=Base+de+données+restaurée+avec+succès&message_type=success",
+                status_code=303
+            )
+        except Exception as e:
+            return RedirectResponse(
+                url=f"/backup?message=Erreur+lors+de+la+restauration+DB:+{urllib.parse.quote(str(e))}&message_type=error",
+                status_code=303
+            )
+    else:
+        return RedirectResponse(
+            url="/backup?message=Format+non+supporté+(veuillez+choisir+un+fichier+.json+ou+.db)&message_type=error",
+            status_code=303
+        )
 
 if __name__ == "__main__":
     import uvicorn
