@@ -297,6 +297,12 @@ def init_db():
     conn.commit()
     conn.close()
 
+    # Automatic Cloud Sync from GitHub Gist if configured
+    try:
+        sync_from_cloud()
+    except Exception as e:
+        print(f"[CloudSync] Notice au démarrage: {e}")
+
 def get_db_stats():
     """Retrieve runtime database metrics and storage information."""
     turso_url = os.environ.get("TURSO_DATABASE_URL", "").strip()
@@ -313,7 +319,13 @@ def get_db_stats():
 
     file_size_kb = 0
     last_modified = "N/A"
-    if turso_url:
+    gist_id = os.environ.get("GIST_ID", "").strip()
+    if gist_id:
+        storage_mode = "Cloud Permanent Automatique (GitHub Sync 100% Gratuit)"
+        is_persistent = True
+        path_display = f"GitHub Cloud Gist #{gist_id[:8]}... (0 FCFA)"
+        last_modified = "Synchronisé Cloud (Automatique)"
+    elif turso_url:
         storage_mode = "Cloud Permanent Turso (100% Gratuit à vie)"
         is_persistent = True
         path_display = turso_url
@@ -385,6 +397,70 @@ def restore_from_json(data: dict) -> int:
     conn.commit()
     conn.close()
     return imported_count
+
+def sync_from_cloud() -> int:
+    """Fetch latest transactions from private GitHub Gist on startup."""
+    gist_id = os.environ.get("GIST_ID", "").strip()
+    github_token = os.environ.get("GITHUB_TOKEN", "").strip()
+    if not gist_id or not github_token:
+        return 0
+
+    try:
+        import urllib.request
+        import json
+        headers = {
+            'Authorization': f'token {github_token}',
+            'Accept': 'application/vnd.github.v3+json',
+            'User-Agent': 'Boutique-Carlo-Acutis'
+        }
+        req = urllib.request.Request(f'https://api.github.com/gists/{gist_id}', headers=headers)
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            res = json.loads(resp.read().decode())
+            file_info = res.get('files', {}).get('journal_backup.json')
+            if file_info and file_info.get('content'):
+                data = json.loads(file_info['content'])
+                imported = restore_from_json(data)
+                print(f"[CloudSync] Synchronisé avec succès depuis GitHub Gist ({imported} nouvelles transactions importées).")
+                return imported
+    except Exception as e:
+        print(f"[CloudSync] Notice au démarrage sync cloud: {e}")
+    return 0
+
+def sync_to_cloud_async():
+    """Trigger background sync to cloud Gist."""
+    import threading
+    t = threading.Thread(target=_push_to_gist, daemon=True)
+    t.start()
+
+def _push_to_gist():
+    """Push current complete state to private GitHub Gist."""
+    gist_id = os.environ.get("GIST_ID", "").strip()
+    github_token = os.environ.get("GITHUB_TOKEN", "").strip()
+    if not gist_id or not github_token:
+        return
+
+    try:
+        import urllib.request
+        import json
+        data = export_data_json()
+        payload = {
+            'files': {
+                'journal_backup.json': {
+                    'content': json.dumps(data, indent=2, ensure_ascii=False)
+                }
+            }
+        }
+        headers = {
+            'Authorization': f'token {github_token}',
+            'Accept': 'application/vnd.github.v3+json',
+            'Content-Type': 'application/json',
+            'User-Agent': 'Boutique-Carlo-Acutis'
+        }
+        req = urllib.request.Request(f'https://api.github.com/gists/{gist_id}', data=json.dumps(payload).encode('utf-8'), headers=headers, method='PATCH')
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            print("[CloudSync] Sauvegarde cloud GitHub Gist mise à jour.")
+    except Exception as e:
+        print(f"[CloudSync] Erreur mise à jour Gist: {e}")
 
 # Initialize DB on module import
 init_db()

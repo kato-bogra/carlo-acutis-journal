@@ -383,6 +383,7 @@ async def create_transaction(
 
             conn.commit()
             conn.close()
+            database.sync_to_cloud_async()
 
             msg = f"Fusion réussie ! {amount:,.0f} FCFA ajoutés à '{category_name}' pour le {date}. Nouveau montant cumulé : {new_total:,.0f} FCFA."
             return RedirectResponse(url=f"/journal?message={urllib.parse.quote_plus(msg)}&message_type=success", status_code=303)
@@ -394,6 +395,7 @@ async def create_transaction(
     """, (date, category_name, type, amount, description, user["full_name"]))
     conn.commit()
     conn.close()
+    database.sync_to_cloud_async()
 
     if action_type == "force_create":
         msg = f"Doublet enregistré ! Une nouvelle ligne distincte pour '{category_name}' ({amount:,.0f} FCFA) a été ajoutée pour le {date}."
@@ -430,6 +432,7 @@ async def update_transaction(
     """, (date, category_name, type, amount, description, user["full_name"], id))
     conn.commit()
     conn.close()
+    database.sync_to_cloud_async()
 
     return RedirectResponse(url="/journal?message=Écriture+corrigée+avec+succès+par+la+Direction&message_type=success", status_code=303)
 
@@ -449,6 +452,7 @@ async def delete_transaction(id: int, request: Request):
     c.execute("DELETE FROM transactions WHERE id = ?", (id,))
     conn.commit()
     conn.close()
+    database.sync_to_cloud_async()
 
     return RedirectResponse(url="/journal?message=Opération+supprimée+du+cahier+journal&message_type=warning", status_code=303)
 
@@ -709,6 +713,7 @@ async def create_category(
         conn.close()
         return RedirectResponse(url="/categories?message=Cette+catégorie+existe+déjà&message_type=error", status_code=303)
     conn.close()
+    database.sync_to_cloud_async()
 
     return RedirectResponse(url=f"/categories?message=Catégorie+'{clean_name}'+ajoutée+avec+succès&message_type=success", status_code=303)
 
@@ -723,6 +728,7 @@ async def delete_category(id: int, request: Request):
     c.execute("DELETE FROM categories WHERE id = ?", (id,))
     conn.commit()
     conn.close()
+    database.sync_to_cloud_async()
 
     return RedirectResponse(url="/categories?message=Catégorie+supprimée&message_type=warning", status_code=303)
 
@@ -894,6 +900,7 @@ async def restore_backup(
         try:
             data = json.loads(content.decode("utf-8"))
             count = database.restore_from_json(data)
+            database.sync_to_cloud_async()
             return RedirectResponse(
                 url=f"/backup?message=Restauration+réussie:+{count}+nouvelles+transactions+importées+sans+doublon&message_type=success",
                 status_code=303
@@ -913,6 +920,7 @@ async def restore_backup(
             with open(database.DB_PATH, "wb") as f:
                 f.write(content)
             database.init_db()
+            database.sync_to_cloud_async()
             return RedirectResponse(
                 url="/backup?message=Base+de+données+restaurée+avec+succès&message_type=success",
                 status_code=303
