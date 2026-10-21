@@ -21,12 +21,12 @@
                 {% if stats.is_persistent %}
                 <div class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-800 shadow-sm text-xs font-bold">
                     <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                    <span>Disque Persistant Render Actif</span>
+                    <span>{{ stats.storage_mode or "Stockage Persistant Actif" }}</span>
                 </div>
                 {% else %}
                 <div class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-amber-50 border border-amber-300 text-amber-800 shadow-sm text-xs font-bold">
                     <span class="w-2.5 h-2.5 rounded-full bg-amber-500 animate-ping"></span>
-                    <span>Mode Standard / Éphémère</span>
+                    <span>{{ stats.storage_mode or "Mode Standard / Éphémère" }}</span>
                 </div>
                 {% endif %}
             </div>
@@ -177,44 +177,43 @@
 
     </div>
 
-    <!-- Render Persistent Disk Activation Guide -->
+    <!-- Guide Configuration Cloud Permanent Gratuit (Turso) -->
     <div class="bg-gradient-to-r from-blue-950 via-slate-900 to-indigo-950 rounded-2xl p-6 text-white shadow-md border border-blue-900/60">
         <div class="flex items-center gap-3 mb-4 border-b border-blue-800/60 pb-4">
-            <div class="w-10 h-10 rounded-xl bg-blue-500/20 text-blue-300 flex items-center justify-center text-lg font-bold border border-blue-400/30">
-                <i class="fa-solid fa-server"></i>
+            <div class="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-300 flex items-center justify-center text-lg font-bold border border-emerald-400/30">
+                <i class="fa-solid fa-cloud"></i>
             </div>
             <div>
-                <h3 class="text-lg font-black text-white">Comment activer le Disque Persistant sur Render (Solution Définitive)</h3>
-                <p class="text-xs text-blue-200">Pour que le serveur conserve vos écritures pour toujours sans que la secrétaire n'ait rien à réimporter.</p>
+                <h3 class="text-lg font-black text-white">Conserver vos données à 0 FCFA sur Render avec Turso Cloud</h3>
+                <p class="text-xs text-blue-200">Pour garder votre lien actuel sur Render sans jamais payer 1 centime et sans perte de données.</p>
             </div>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
             <div class="bg-white/10 rounded-xl p-4 border border-white/10">
-                <div class="w-6 h-6 rounded-full bg-amber-400 text-slate-950 font-black flex items-center justify-center mb-2">1</div>
-                <div class="font-bold text-amber-300 mb-1">Passer l'instance en Starter</div>
-                <p class="text-slate-300">Sur Render, allez dans votre service web <span class="font-bold text-white">carlo-acutis-journal</span> &gt; <span class="font-bold text-white">Settings</span> &gt; changez le plan en <span class="font-bold text-amber-200">Starter</span> (7$/mois). Cela empêche le serveur de se mettre en veille la nuit.</p>
+                <div class="w-6 h-6 rounded-full bg-emerald-400 text-slate-950 font-black flex items-center justify-center mb-2">1</div>
+                <div class="font-bold text-emerald-300 mb-1">Créer une base gratuite sur Turso</div>
+                <p class="text-slate-300">Rendez-vous sur <a href="https://turso.tech" target="_blank" class="text-amber-300 underline font-bold">turso.tech</a>, connectez-vous avec votre compte GitHub en 1 clic, puis créez une base nommée <span class="font-bold text-white">carlo-acutis-db</span> (100% gratuit à vie, jusqu'à 9 Go).</p>
             </div>
 
             <div class="bg-white/10 rounded-xl p-4 border border-white/10">
-                <div class="w-6 h-6 rounded-full bg-amber-400 text-slate-950 font-black flex items-center justify-center mb-2">2</div>
-                <div class="font-bold text-amber-300 mb-1">Ajouter un Disque Persistant</div>
-                <p class="text-slate-300">Dans l'onglet <span class="font-bold text-white">Disks</span> de votre service Render, cliquez sur <span class="font-bold text-white">Add Disk</span> :</p>
+                <div class="w-6 h-6 rounded-full bg-emerald-400 text-slate-950 font-black flex items-center justify-center mb-2">2</div>
+                <div class="font-bold text-emerald-300 mb-1">Copier l'URL et le Token</div>
+                <p class="text-slate-300">Sur votre base Turso, copiez :</p>
                 <ul class="mt-1 space-y-0.5 text-blue-200 font-mono text-[11px]">
-                    <li>• Name : <strong class="text-white">journal-data</strong></li>
-                    <li>• Mount Path : <strong class="text-white">/data</strong></li>
-                    <li>• Size : <strong class="text-white">1 GB</strong></li>
+                    <li>• URL : <strong class="text-white">libsql://...turso.io</strong></li>
+                    <li>• Auth Token : <strong class="text-white">eyJh...</strong></li>
                 </ul>
             </div>
 
             <div class="bg-white/10 rounded-xl p-4 border border-white/10">
-                <div class="w-6 h-6 rounded-full bg-amber-400 text-slate-950 font-black flex items-center justify-center mb-2">3</div>
-                <div class="font-bold text-amber-300 mb-1">Variable d'environnement</div>
-                <p class="text-slate-300">Dans l'onglet <span class="font-bold text-white">Environment</span>, vérifiez ou ajoutez :</p>
-                <div class="mt-1 bg-black/40 p-2 rounded text-emerald-300 font-mono text-[11px]">
-                    DB_PATH = /data/journal.db
+                <div class="w-6 h-6 rounded-full bg-emerald-400 text-slate-950 font-black flex items-center justify-center mb-2">3</div>
+                <div class="font-bold text-emerald-300 mb-1">Ajouter dans Render (Environment)</div>
+                <p class="text-slate-300">Dans votre service Render <span class="font-bold text-white">carlo-acutis-journal</span> &gt; onglet <span class="font-bold text-white">Environment</span>, ajoutez :</p>
+                <div class="mt-1 bg-black/40 p-2 rounded text-emerald-300 font-mono text-[11px] space-y-0.5">
+                    <div>TURSO_DATABASE_URL = libsql://...</div>
+                    <div>TURSO_AUTH_TOKEN = votre_token</div>
                 </div>
-                <p class="text-slate-400 text-[10px] mt-1">L'application détecte aussi automatiquement /data.</p>
             </div>
         </div>
     </div>

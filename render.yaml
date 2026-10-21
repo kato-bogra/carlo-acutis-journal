@@ -2,16 +2,11 @@ services:
   - type: web
     name: carlo-acutis-journal
     runtime: python
-    plan: starter
+    plan: free
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
-    disk:
-      name: journal-data
-      mountPath: /data
-      sizeGB: 1
     envVars:
       - key: PYTHON_VERSION
         value: 3.10.0
-      - key: DB_PATH
-        value: /data/journal.db
+
 

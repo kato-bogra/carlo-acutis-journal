@@ -71,7 +71,90 @@ INITIAL_TRANSACTIONS = REAL_TRANSACTIONS
 def hash_pw(pwd: str) -> str:
     return hashlib.sha256(pwd.encode('utf-8')).hexdigest()
 
+class LibsqlRow:
+    def __init__(self, cols, values):
+        self._cols = cols
+        self._values = values
+        self._map = dict(zip(cols, values))
+
+    def __getitem__(self, key):
+        if isinstance(key, int):
+            return self._values[key]
+        return self._map[key]
+
+    def get(self, key, default=None):
+        return self._map.get(key, default)
+
+    def keys(self):
+        return self._cols
+
+    def values(self):
+        return self._values
+
+    def items(self):
+        return self._map.items()
+
+    def __iter__(self):
+        return iter(self._cols)
+
+class LibsqlCursorWrapper:
+    def __init__(self, cursor):
+        self._cursor = cursor
+
+    def execute(self, sql, params=()):
+        return self._cursor.execute(sql, params)
+
+    def executemany(self, sql, params=()):
+        return self._cursor.executemany(sql, params)
+
+    def fetchone(self):
+        row = self._cursor.fetchone()
+        if row is None:
+            return None
+        cols = [col[0] for col in self._cursor.description]
+        return LibsqlRow(cols, row)
+
+    def fetchall(self):
+        rows = self._cursor.fetchall()
+        if not rows:
+            return []
+        cols = [col[0] for col in self._cursor.description]
+        return [LibsqlRow(cols, r) for r in rows]
+
+    @property
+    def lastrowid(self):
+        return getattr(self._cursor, 'lastrowid', None)
+
+    def __getattr__(self, name):
+        return getattr(self._cursor, name)
+
+class LibsqlConnectionWrapper:
+    def __init__(self, conn):
+        self._conn = conn
+
+    def cursor(self):
+        return LibsqlCursorWrapper(self._conn.cursor())
+
+    def commit(self):
+        return self._conn.commit()
+
+    def close(self):
+        return self._conn.close()
+
+    def __getattr__(self, name):
+        return getattr(self._conn, name)
+
 def get_connection():
+    turso_url = os.environ.get("TURSO_DATABASE_URL", "").strip()
+    turso_token = os.environ.get("TURSO_AUTH_TOKEN", "").strip()
+    if turso_url:
+        try:
+            import libsql
+            raw_conn = libsql.connect(database=turso_url, auth_token=turso_token or None)
+            return LibsqlConnectionWrapper(raw_conn)
+        except Exception as e:
+            print(f"Warning: Failed to connect to Turso ({e}), falling back to SQLite.")
+
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     return conn
@@ -216,6 +299,8 @@ def init_db():
 
 def get_db_stats():
     """Retrieve runtime database metrics and storage information."""
+    turso_url = os.environ.get("TURSO_DATABASE_URL", "").strip()
+
     conn = get_connection()
     c = conn.cursor()
     c.execute("SELECT COUNT(*) FROM transactions")
@@ -228,13 +313,23 @@ def get_db_stats():
 
     file_size_kb = 0
     last_modified = "N/A"
-    if DB_PATH.exists():
-        file_size_kb = round(DB_PATH.stat().st_size / 1024, 2)
-        last_modified = datetime.fromtimestamp(DB_PATH.stat().st_mtime).strftime("%d/%m/%Y %H:%M:%S")
+    if turso_url:
+        storage_mode = "Cloud Permanent Turso (100% Gratuit à vie)"
+        is_persistent = True
+        path_display = turso_url
+        last_modified = "Synchronisé Cloud (Temps réel)"
+    else:
+        if DB_PATH.exists():
+            file_size_kb = round(DB_PATH.stat().st_size / 1024, 2)
+            last_modified = datetime.fromtimestamp(DB_PATH.stat().st_mtime).strftime("%d/%m/%Y %H:%M:%S")
 
-    is_persistent = "/data" in str(DB_PATH) or "DB_PATH" in os.environ
+        is_persistent = "/data" in str(DB_PATH) or "DB_PATH" in os.environ
+        storage_mode = "Disque Persistant (/data)" if is_persistent else "Stockage Local Temporaire"
+        path_display = str(DB_PATH)
+
     return {
-        "path": str(DB_PATH),
+        "path": path_display,
+        "storage_mode": storage_mode,
         "is_persistent": is_persistent,
         "tx_count": tx_count,
         "cat_count": cat_count,
