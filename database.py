@@ -35,15 +35,16 @@ DB_PATH = resolve_db_path()
 
 INITIAL_CATEGORIES = [
     ("Abonnement Wifi", "sortie", "depense"),
-    ("Achat d'articles", "sortie", "depense"),
+    ("Achat d'articles", "both", "depense"),
     ("Achat d'encre", "sortie", "depense"),
     ("Achat de cash power", "sortie", "depense"),
     ("Achat de papier ram", "sortie", "depense"),
     ("Conception", "entree", "service"),
-    ("Coupe", "entree", "service"),
+    ("Coupe", "both", "service"),
     ("Déplacement", "sortie", "depense"),
     ("Entretien des machines", "sortie", "depense"),
     ("Frais d'électricité", "sortie", "depense"),
+    ("Frais de mairie", "sortie", "depense"),
     ("Impression", "entree", "service"),
     ("Lamination", "entree", "service"),
     ("Loyer", "sortie", "depense"),
@@ -61,8 +62,9 @@ INITIAL_CATEGORIES = [
     ("Vente de livret de confirmation", "entree", "vente"),
     ("Vente de livret de rosaire", "entree", "vente"),
     ("Vente de livret Esprit Saint", "entree", "vente"),
+    ("Vente de sanctoral", "entree", "vente"),
     ("Vente de Wifi", "entree", "service"),
-    ("Confection de tampon", "entree", "service"),
+    ("Confection de tampon", "both", "service"),
 ]
 
 from update_cahier_reel import REAL_TRANSACTIONS
@@ -233,10 +235,18 @@ def init_db():
     """)
     c.execute("UPDATE categories SET activity_type = 'depense' WHERE operation_type = 'sortie'")
 
-    # Ensure 'Reliure de livre de bénédiction' exists as a configured category
-    c.execute("SELECT id FROM categories WHERE name = 'Reliure de livre de bénédiction'")
-    if not c.fetchone():
-        c.execute("INSERT INTO categories (name, operation_type, activity_type) VALUES ('Reliure de livre de bénédiction', 'sortie', 'depense')")
+    # Ensure updated operation_types for categories with dual usage
+    c.execute("UPDATE categories SET operation_type = 'both' WHERE name IN ('Coupe', 'Confection de tampon', 'Achat d''articles')")
+
+    # Ensure all required categories exist
+    for cat_name, cat_op, cat_act in [
+        ("Reliure de livre de bénédiction", "sortie", "depense"),
+        ("Frais de mairie", "sortie", "depense"),
+        ("Vente de sanctoral", "entree", "vente"),
+    ]:
+        c.execute("SELECT id FROM categories WHERE name = ?", (cat_name,))
+        if not c.fetchone():
+            c.execute("INSERT INTO categories (name, operation_type, activity_type) VALUES (?, ?, ?)", (cat_name, cat_op, cat_act))
 
     # Transactions table
     c.execute("""

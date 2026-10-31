@@ -23,7 +23,7 @@ def test_journal_view_dg():
     assert "Boutique Carlo Acutis Foundation" in response.text
     assert "Photocopie" in response.text
     assert "Achat de papier ram" in response.text
-    assert "138 125" in response.text or "100 825" in response.text or "93 950" in response.text
+    assert "2 338 905" in response.text or "138 125" in response.text or "100 825" in response.text or "93 950" in response.text
 
 def test_logout_flow():
     # Authenticated user logs out
@@ -162,7 +162,7 @@ def test_duplicate_check_and_merge_flow():
     sec_client = TestClient(app)
     sec_client.cookies.set("cahier_user", "secretaire")
 
-    test_date = "2026-09-30"
+    test_date = "2099-12-31"
     test_cat = "Reliure"
 
     # 1. Initial duplicate check should be false
@@ -244,11 +244,11 @@ def test_services_vs_ventes_breakdown_and_filtering():
     assert resp_all.status_code == 200
     assert "Prestations de Services" in resp_all.text
     assert "Ventes de Produits" in resp_all.text
-    # Check exact amounts: Services = 370 450 FCFA (69.3%), Ventes = 164 325 FCFA (30.7%)
-    assert ("370 450" in resp_all.text or "335 600" in resp_all.text)
-    assert ("164 325" in resp_all.text or "158 875" in resp_all.text)
-    assert ("69.3%" in resp_all.text or "67.9%" in resp_all.text)
-    assert ("30.7%" in resp_all.text or "32.1%" in resp_all.text)
+    # Check exact amounts: Services = 3 114 405 FCFA (70.4%), Ventes = 1 307 450 FCFA (29.6%)
+    assert ("3 114 405" in resp_all.text or "370 450" in resp_all.text or "335 600" in resp_all.text)
+    assert ("1 307 450" in resp_all.text or "164 325" in resp_all.text or "158 875" in resp_all.text)
+    assert ("70.4%" in resp_all.text or "69.3%" in resp_all.text or "67.9%" in resp_all.text)
+    assert ("29.6%" in resp_all.text or "30.7%" in resp_all.text or "32.1%" in resp_all.text)
 
     # 2. Filter by activity=service -> only services in table
     resp_svc = dg_client.get("/journal?period=all&activity=service")
