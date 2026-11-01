@@ -295,9 +295,12 @@
                             class="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-medium">
                         <option value="" disabled selected>-- Choisissez une opération --</option>
                         {% for cat in categories %}
+                            {% if not cat.dg_only or current_user.role in ['dg', 'dg_adjoint'] %}
                             <option value="{{ cat.name }}" data-optype="{{ cat.operation_type }}">
                                 {{ cat.name }} {% if cat.operation_type == 'entree' %}(Recette){% elif cat.operation_type == 'sortie' %}(Dépense){% endif %}
+                                {% if cat.dg_only %} [🔒 Réservé Direction]{% endif %}
                             </option>
+                            {% endif %}
                         {% endfor %}
                     </select>
                 </div>
@@ -644,7 +647,9 @@
                 <select id="edit_category" name="category_name" required 
                         class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 font-medium">
                     {% for cat in categories %}
-                        <option value="{{ cat.name }}">{{ cat.name }}</option>
+                        {% if not cat.dg_only or current_user.role in ['dg', 'dg_adjoint'] %}
+                        <option value="{{ cat.name }}">{{ cat.name }}{% if cat.dg_only %} [🔒 Direction]{% endif %}</option>
+                        {% endif %}
                     {% endfor %}
                 </select>
             </div>

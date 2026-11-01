@@ -370,6 +370,72 @@ def test_backup_and_restore_flow():
     conn.commit()
     conn.close()
 
+def test_salaire_personnel_dg_restriction():
+    # 1. Check category in DB
+    import database
+    conn = database.get_connection()
+    c = conn.cursor()
+    c.execute("SELECT name, operation_type, activity_type, dg_only FROM categories WHERE name = 'Salaire personnel'")
+    cat = c.fetchone()
+    assert cat is not None
+    assert cat["operation_type"] == "sortie"
+    assert cat["activity_type"] == "depense"
+    assert cat["dg_only"] == 1
+    conn.close()
+
+    # 2. As Secretaire: should NOT see 'Salaire personnel' in journal dropdown
+    sec_client = TestClient(app)
+    sec_client.cookies.set("cahier_user", "secretaire")
+    resp_sec = sec_client.get("/journal")
+    assert resp_sec.status_code == 200
+    select_sec = resp_sec.text.split('<select id="categorySelect"')[1].split('</select>')[0]
+    assert "Salaire personnel" not in select_sec
+
+    # 3. As Secretaire: posting 'Salaire personnel' should be BLOCKED!
+    post_sec = sec_client.post("/transactions/create", data={
+        "date": "2099-12-31",
+        "category_name": "Salaire personnel",
+        "type": "sortie",
+        "amount": "50000",
+        "description": "Tentative secretaire"
+    }, follow_redirects=True)
+    assert post_sec.status_code == 200
+    assert "Action non autorisée" in post_sec.text
+    assert "Direction Générale" in post_sec.text
+
+    # Verify no transaction was inserted by secretaire
+    conn = database.get_connection()
+    c = conn.cursor()
+    c.execute("SELECT id FROM transactions WHERE category_name = 'Salaire personnel'")
+    assert c.fetchone() is None
+    conn.close()
+
+    # 4. As DG: should see 'Salaire personnel' in dropdown
+    dg_client = TestClient(app)
+    dg_client.cookies.set("cahier_user", "dg")
+    resp_dg = dg_client.get("/journal")
+    assert resp_dg.status_code == 200
+    select_dg = resp_dg.text.split('<select id="categorySelect"')[1].split('</select>')[0]
+    assert "Salaire personnel" in select_dg
+
+    # 5. As DG: posting 'Salaire personnel' should SUCCEED!
+    post_dg = dg_client.post("/transactions/create", data={
+        "date": "2099-12-31",
+        "category_name": "Salaire personnel",
+        "type": "sortie",
+        "amount": "50000",
+        "description": "Paiement DG test"
+    }, follow_redirects=True)
+    assert post_dg.status_code == 200
+    assert "enregistrée avec succès" in post_dg.text
+
+    # Clean up test transaction
+    conn = database.get_connection()
+    c = conn.cursor()
+    c.execute("DELETE FROM transactions WHERE date = '2099-12-31'")
+    conn.commit()
+    conn.close()
+
 if __name__ == "__main__":
     import pytest
     pytest.main(["-v", "test_app.py"])

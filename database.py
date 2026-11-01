@@ -54,6 +54,7 @@ INITIAL_CATEGORIES = [
     ("Reliure de livre de bénédiction", "sortie", "depense"),
     ("Reliure de livrets de bénédiction", "sortie", "depense"),
     ("Saisie", "entree", "service"),
+    ("Salaire personnel", "sortie", "depense"),
     ("Scanner", "entree", "service"),
     ("Vente d'articles", "entree", "vente"),
     ("Vente d'image", "entree", "vente"),
@@ -201,9 +202,13 @@ def init_db():
     )
     """)
 
-    # Dynamic migration to ensure activity_type column exists
+    # Dynamic migration to ensure activity_type & dg_only columns exist
     try:
         c.execute("ALTER TABLE categories ADD COLUMN activity_type TEXT DEFAULT 'service'")
+    except sqlite3.OperationalError:
+        pass
+    try:
+        c.execute("ALTER TABLE categories ADD COLUMN dg_only INTEGER DEFAULT 0")
     except sqlite3.OperationalError:
         pass
 
@@ -238,15 +243,19 @@ def init_db():
     # Ensure updated operation_types for categories with dual usage
     c.execute("UPDATE categories SET operation_type = 'both' WHERE name IN ('Coupe', 'Confection de tampon', 'Achat d''articles')")
 
-    # Ensure all required categories exist
-    for cat_name, cat_op, cat_act in [
-        ("Reliure de livre de bénédiction", "sortie", "depense"),
-        ("Frais de mairie", "sortie", "depense"),
-        ("Vente de sanctoral", "entree", "vente"),
+    # Ensure all required categories exist and maintain DG-only restrictions
+    for cat_name, cat_op, cat_act, cat_dg in [
+        ("Reliure de livre de bénédiction", "sortie", "depense", 0),
+        ("Frais de mairie", "sortie", "depense", 0),
+        ("Vente de sanctoral", "entree", "vente", 0),
+        ("Salaire personnel", "sortie", "depense", 1),
     ]:
         c.execute("SELECT id FROM categories WHERE name = ?", (cat_name,))
-        if not c.fetchone():
-            c.execute("INSERT INTO categories (name, operation_type, activity_type) VALUES (?, ?, ?)", (cat_name, cat_op, cat_act))
+        row = c.fetchone()
+        if not row:
+            c.execute("INSERT INTO categories (name, operation_type, activity_type, dg_only) VALUES (?, ?, ?, ?)", (cat_name, cat_op, cat_act, cat_dg))
+        else:
+            c.execute("UPDATE categories SET operation_type = ?, activity_type = ?, dg_only = ? WHERE name = ?", (cat_op, cat_act, cat_dg, cat_name))
 
     # Transactions table
     c.execute("""
@@ -384,10 +393,15 @@ def restore_from_json(data: dict) -> int:
     
     # 1. Categories
     for cat in data.get("categories", []):
+        cat_dg = cat.get("dg_only", 1 if "salaire" in cat.get("name", "").lower() else 0)
         c.execute("""
-            INSERT OR IGNORE INTO categories (name, operation_type, activity_type, is_active)
-            VALUES (?, ?, ?, ?)
-        """, (cat.get("name"), cat.get("operation_type", "both"), cat.get("activity_type", "service"), cat.get("is_active", 1)))
+            INSERT INTO categories (name, operation_type, activity_type, is_active, dg_only)
+            VALUES (?, ?, ?, ?, ?)
+            ON CONFLICT(name) DO UPDATE SET
+                operation_type = excluded.operation_type,
+                activity_type = excluded.activity_type,
+                dg_only = excluded.dg_only
+        """, (cat.get("name"), cat.get("operation_type", "both"), cat.get("activity_type", "service"), cat.get("is_active", 1), cat_dg))
 
     # 2. Transactions
     imported_count = 0

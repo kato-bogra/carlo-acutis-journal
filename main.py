@@ -160,7 +160,7 @@ async def journal_view(
     c = conn.cursor()
 
     # 1. Fetch categories for dropdown & activity map
-    c.execute("SELECT id, name, operation_type, activity_type, is_active FROM categories WHERE is_active = 1 ORDER BY name ASC")
+    c.execute("SELECT id, name, operation_type, activity_type, is_active, dg_only FROM categories WHERE is_active = 1 ORDER BY name ASC")
     categories = [dict(r) for r in c.fetchall()]
     cat_activity_map = {cat["name"]: cat.get("activity_type") for cat in categories}
 
@@ -344,6 +344,18 @@ async def create_transaction(
 
     conn = database.get_connection()
     c = conn.cursor()
+
+    # Security Rule: Only DG and DG Adjoint can enter restricted categories like 'Salaire personnel'
+    c.execute("SELECT dg_only FROM categories WHERE name = ?", (category_name,))
+    cat_row = c.fetchone()
+    is_dg_restricted = bool(cat_row and cat_row["dg_only"]) or ("salaire" in category_name.lower())
+    if is_dg_restricted and user["role"] not in ["dg", "dg_adjoint"]:
+        conn.close()
+        msg = f"Action non autorisée : Seule la Direction Générale (DG ou DG Adjoint) peut enregistrer les dépenses de '{category_name}'."
+        return RedirectResponse(
+            url=f"/journal?message={urllib.parse.quote_plus(msg)}&message_type=error",
+            status_code=303
+        )
 
     type_label = "Entrée (Recette)" if type == "entree" else "Sortie (Dépense)"
 
@@ -684,7 +696,8 @@ async def create_category(
     request: Request,
     name: str = Form(...),
     operation_type: str = Form("both"),
-    activity_type: Optional[str] = Form(None)
+    activity_type: Optional[str] = Form(None),
+    dg_only: Optional[int] = Form(0)
 ):
     user = get_current_user(request)
     if user["role"] not in ["dg", "dg_adjoint"]:
@@ -704,10 +717,12 @@ async def create_category(
         else:
             activity_type = "service"
 
+    is_dg = 1 if (dg_only or "salaire" in clean_name.lower()) else 0
+
     conn = database.get_connection()
     c = conn.cursor()
     try:
-        c.execute("INSERT INTO categories (name, operation_type, activity_type) VALUES (?, ?, ?)", (clean_name, operation_type, activity_type))
+        c.execute("INSERT INTO categories (name, operation_type, activity_type, dg_only) VALUES (?, ?, ?, ?)", (clean_name, operation_type, activity_type, is_dg))
         conn.commit()
     except sqlite3.IntegrityError:
         conn.close()
